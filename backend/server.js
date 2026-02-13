@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./db');
 require('dotenv').config();
@@ -11,6 +12,7 @@ const SECRET = process.env.JWT_SECRET || 'aquamen_secret_key_123';
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Hardcoded user as requested
 const ADMIN_USER = {
@@ -85,6 +87,11 @@ app.delete('/api/members/:id', authenticate, (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'Member deleted', changes: this.changes });
     });
+});
+
+// Catch-all for React routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
 initDb().then(() => {

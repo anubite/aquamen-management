@@ -5,10 +5,10 @@ const dbPath = path.resolve(__dirname, 'aquamen.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 const initDb = () => {
-    return new Promise((resolve, reject) => {
-        db.serialize(() => {
-            // Members table
-            db.run(`
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      // Members table
+      db.run(`
         CREATE TABLE IF NOT EXISTS members (
           id INTEGER PRIMARY KEY,
           name TEXT NOT NULL,
@@ -20,19 +20,16 @@ const initDb = () => {
         )
       `);
 
-            // Ensure first member starts at 1000
-            db.get("SELECT COUNT(*) as count FROM members", (err, row) => {
-                if (err) return reject(err);
-                if (row.count === 0) {
-                    // We can't use AUTOINCREMENT with a specific start value easily in SQLite without inserting a dummy
-                    // or using a trigger/manual id. 
-                    // An easy way is to insert a dummy and delete, but SQLite ID starts at 1.
-                    // Better: use a trigger or manual ID calculation as requested: last ID + 1, starting at 1000.
-                }
-            });
+      // Ensure first member starts at 1000
+      db.get("SELECT COUNT(*) as count FROM members", (err, row) => {
+        if (err) return reject(err);
+        if (row.count === 0) {
+          console.log("Database initialized: no members found.");
+        }
+      });
 
-            // Simple users table for login
-            db.run(`
+      // Simple users table for login
+      db.run(`
         CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           username TEXT UNIQUE NOT NULL,
@@ -40,9 +37,9 @@ const initDb = () => {
         )
       `);
 
-            resolve();
-        });
+      resolve();
     });
+  });
 };
 
 module.exports = { db, initDb };
