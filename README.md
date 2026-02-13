@@ -47,15 +47,27 @@ npm run dev
 -   **Frontend**: http://localhost:5173
 -   **Backend API**: http://localhost:5000
 
-## Authentication
-
-Access to the management dashboard is protected. Use the following default credentials to log in:
-
--   **Username**: `aquamen`
--   **Password**: `milujemeAI`
-
 ## Project Structure
 
 -   `backend/`: Express server, SQLite database logic, and API routes.
 -   `frontend/`: React application built with Vite and Tailwind CSS.
 -   `package.json`: Root configuration for managing the full-stack workspace.
+## Deployment
+
+The project is pre-configured for deployment to **Render.com**.
+
+### Quick Deploy (Render Blueprint)
+
+1.  Push your code to a GitHub repository.
+2.  Connect the repository to Render.com.
+3.  Render will automatically detect the `render.yaml` Blueprint.
+4.  Accept the Blueprint configuration to create the web service and a persistent disk for the database.
+
+### Manual Configuration Notes
+
+-   **Environment Variables**:
+    -   `JWT_SECRET`: Needs to be a secure random string (Render auto-generates this if using the Blueprint).
+    -   `SQLITE_DB_PATH`: Points to the database file location. For persistence, this should be on a mounted disk (e.g., `/var/lib/sqlite/aquamen.sqlite`).
+-   **Persistent Disk**: SQLite databases are stored in a single file. Ensure you mount a persistent disk to your service to prevent data loss whenever the service restarts or redeploys.
+-   **Build Command**: `npm run build`
+-   **Start Command**: `npm start`

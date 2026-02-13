@@ -44,37 +44,40 @@ app.post('/api/login', (req, res) => {
 
 // Members routes
 app.get('/api/members', authenticate, (req, res) => {
-    db.all("SELECT * FROM members ORDER BY id DESC", [], (err, rows) => {
+    db.all(`
+        SELECT m.*, g.trainer as group_trainer 
+        FROM members m 
+        LEFT JOIN groups g ON m.group_id = g.id 
+        ORDER BY m.id DESC
+    `, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
 
 app.post('/api/members', authenticate, (req, res) => {
-    const { name, surname, email, group_name, status } = req.body;
+    const { name, surname, email, group_id, status } = req.body;
 
-    // Get last ID to increment
     db.get("SELECT MAX(id) as maxId FROM members", (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
-
-        const nextId = row.maxId ? row.maxId + 1 : 1000;
+        const nextId = row && row.maxId ? row.maxId + 1 : 1000;
 
         db.run(
-            "INSERT INTO members (id, name, surname, email, group_name, status) VALUES (?, ?, ?, ?, ?, ?)",
-            [nextId, name, surname, email, group_name, status || 'Active'],
+            "INSERT INTO members (id, name, surname, email, group_id, status) VALUES (?, ?, ?, ?, ?, ?)",
+            [nextId, name, surname, email, group_id, status || 'Active'],
             function (err) {
                 if (err) return res.status(400).json({ error: err.message });
-                res.status(201).json({ id: nextId, name, surname, email, group_name, status });
+                res.status(201).json({ id: nextId, name, surname, email, group_id, status });
             }
         );
     });
 });
 
 app.put('/api/members/:id', authenticate, (req, res) => {
-    const { name, surname, email, group_name, status } = req.body;
+    const { name, surname, email, group_id, status } = req.body;
     db.run(
-        "UPDATE members SET name = ?, surname = ?, email = ?, group_name = ?, status = ? WHERE id = ?",
-        [name, surname, email, group_name, status, req.params.id],
+        "UPDATE members SET name = ?, surname = ?, email = ?, group_id = ?, status = ? WHERE id = ?",
+        [name, surname, email, group_id, status, req.params.id],
         function (err) {
             if (err) return res.status(400).json({ error: err.message });
             res.json({ message: 'Member updated', changes: this.changes });
@@ -86,6 +89,53 @@ app.delete('/api/members/:id', authenticate, (req, res) => {
     db.run("DELETE FROM members WHERE id = ?", [req.params.id], function (err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'Member deleted', changes: this.changes });
+    });
+});
+
+// Groups routes
+app.get('/api/groups', authenticate, (req, res) => {
+    db.all("SELECT * FROM groups ORDER BY id ASC", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.post('/api/groups', authenticate, (req, res) => {
+    const { id, trainer } = req.body;
+    db.run(
+        "INSERT INTO groups (id, trainer) VALUES (?, ?)",
+        [id, trainer],
+        function (err) {
+            if (err) return res.status(400).json({ error: err.message });
+            res.status(201).json({ id, trainer });
+        }
+    );
+});
+
+app.put('/api/groups/:id', authenticate, (req, res) => {
+    const { trainer } = req.body;
+    db.run(
+        "UPDATE groups SET trainer = ? WHERE id = ?",
+        [trainer, req.params.id],
+        function (err) {
+            if (err) return res.status(400).json({ error: err.message });
+            res.json({ message: 'Group updated', id: req.params.id, trainer });
+        }
+    );
+});
+
+app.delete('/api/groups/:id', authenticate, (req, res) => {
+    // Check if group has members before deleting
+    db.get("SELECT COUNT(*) as count FROM members WHERE group_id = ?", [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row.count > 0) {
+            return res.status(400).json({ error: 'Cannot delete group with assigned members' });
+        }
+
+        db.run("DELETE FROM groups WHERE id = ?", [req.params.id], function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Group deleted', changes: this.changes });
+        });
     });
 });
 

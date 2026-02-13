@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = '/api';
 
@@ -7,12 +8,14 @@ function Login({ setToken }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const res = await axios.post(`${API_URL}/login`, { username, password });
             setToken(res.data.token);
+            navigate('/members');
         } catch (err) {
             setError('Invalid username or password');
         }
