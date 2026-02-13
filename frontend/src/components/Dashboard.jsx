@@ -67,9 +67,9 @@ function Dashboard() {
         }
     };
 
-    const filteredMembers = members.filter(m =>
+    const filteredMembers = Array.isArray(members) ? members.filter(m =>
         `${m.name} ${m.surname} ${m.email}`.toLowerCase().includes(search.toLowerCase())
-    );
+    ) : [];
 
     return (
         <div>
