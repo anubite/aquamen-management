@@ -14,18 +14,19 @@ if (savedToken) {
 function App() {
     const [token, setToken] = useState(savedToken);
 
-    useEffect(() => {
-        if (token) {
-            localStorage.setItem('token', token);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const handleSetToken = (newToken) => {
+        if (newToken) {
+            localStorage.setItem('token', newToken);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
         } else {
             localStorage.removeItem('token');
             delete axios.defaults.headers.common['Authorization'];
         }
-    }, [token]);
+        setToken(newToken);
+    };
 
     if (!token) {
-        return <Login setToken={setToken} />;
+        return <Login setToken={handleSetToken} />;
     }
 
     return (
@@ -35,7 +36,7 @@ function App() {
                     <h1 style={{ margin: 0 }}>Aquamen Management</h1>
                     <p style={{ color: 'var(--text-muted)' }}>Swimming Team Administration</p>
                 </div>
-                <button className="btn" onClick={() => setToken(null)} style={{ border: '1px solid var(--border)' }}>
+                <button className="btn" onClick={() => handleSetToken(null)} style={{ border: '1px solid var(--border)' }}>
                     Logout
                 </button>
             </header>
