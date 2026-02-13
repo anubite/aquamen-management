@@ -1,26 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 
 const API_URL = '/api';
 
-// Initialize axios header from localStorage immediately on load
-const savedToken = localStorage.getItem('token');
-if (savedToken) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-}
-
 function App() {
-    const [token, setToken] = useState(savedToken);
+    const [token, setToken] = useState(localStorage.getItem('token'));
 
     const handleSetToken = (newToken) => {
         if (newToken) {
             localStorage.setItem('token', newToken);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
         } else {
             localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
         }
         setToken(newToken);
     };
@@ -41,7 +33,7 @@ function App() {
                 </button>
             </header>
             <main>
-                <Dashboard />
+                <Dashboard token={token} />
             </main>
         </div>
     );

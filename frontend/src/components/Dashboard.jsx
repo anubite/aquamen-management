@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react';
 
 const API_URL = '/api';
 
-function Dashboard() {
+function Dashboard({ token }) {
     const [members, setMembers] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({});
@@ -12,13 +12,15 @@ function Dashboard() {
     const [newMember, setNewMember] = useState({ name: '', surname: '', email: '', group_name: 'A', status: 'Active' });
     const [search, setSearch] = useState('');
 
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+
     useEffect(() => {
         fetchMembers();
-    }, []);
+    }, [token]);
 
     const fetchMembers = async () => {
         try {
-            const res = await axios.get(`${API_URL}/members`);
+            const res = await axios.get(`${API_URL}/members`, authHeader);
             setMembers(res.data);
         } catch (err) {
             console.error('Error fetching members', err);
@@ -36,7 +38,7 @@ function Dashboard() {
 
     const saveEdit = async () => {
         try {
-            await axios.put(`${API_URL}/members/${editingId}`, editForm);
+            await axios.put(`${API_URL}/members/${editingId}`, editForm, authHeader);
             setEditingId(null);
             fetchMembers();
         } catch (err) {
@@ -47,7 +49,7 @@ function Dashboard() {
     const deleteMember = async (id) => {
         if (window.confirm('Delete this member?')) {
             try {
-                await axios.delete(`${API_URL}/members/${id}`);
+                await axios.delete(`${API_URL}/members/${id}`, authHeader);
                 fetchMembers();
             } catch (err) {
                 alert('Error deleting member');
@@ -58,7 +60,7 @@ function Dashboard() {
     const addMember = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(`${API_URL}/members`, newMember);
+            await axios.post(`${API_URL}/members`, newMember, authHeader);
             setIsAdding(false);
             setNewMember({ name: '', surname: '', email: '', group_name: 'A', status: 'Active' });
             fetchMembers();
