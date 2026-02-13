@@ -5,9 +5,14 @@ import Dashboard from './components/Dashboard';
 
 const API_URL = '/api';
 
+// Initialize axios header from localStorage immediately on load
+const savedToken = localStorage.getItem('token');
+if (savedToken) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+}
+
 function App() {
-    const [token, setToken] = useState(localStorage.getItem('token'));
-    const [loading, setLoading] = useState(false);
+    const [token, setToken] = useState(savedToken);
 
     useEffect(() => {
         if (token) {
