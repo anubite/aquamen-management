@@ -4,6 +4,9 @@
  */
 exports.up = function (knex) {
     return knex.schema
+        .dropTableIfExists('members')
+        .dropTableIfExists('groups')
+        .dropTableIfExists('users')
         .createTable('groups', function (table) {
             table.string('id').primary();
             table.string('trainer').notNullable();
