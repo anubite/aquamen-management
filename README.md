@@ -33,8 +33,13 @@ Before setting up the project, ensure you have the following installed:
     npm run install-all
     ```
 
-3.  **Environment Configuration**:
-    The application uses a default SQLite database and pre-configured JWT secrets. You can customize these in the `.env` file in the `backend` directory if needed.
+3.  **Database Initialization**:
+    The application uses **Knex.js** for database management. The first time you start the app, it will automatically run migrations and seeds. If you need to manage the database manually:
+    ```bash
+    # From the backend directory
+    npm run migrate      # Run latest migrations
+    npm run seed         # Populate with initial data
+    ```
 
 ## Running the Application
 
