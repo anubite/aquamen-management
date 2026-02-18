@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon } from 'lucide-react';
 import MemberSidePanel from './MemberSidePanel';
 import ImportDashboard from './ImportDashboard';
+import EmailDraftPanel from './EmailDraftPanel';
 
 const API_URL = '/api';
 
@@ -12,6 +13,8 @@ function Dashboard({ token }) {
     const [selectedMember, setSelectedMember] = useState(null);
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
+    const [emailMember, setEmailMember] = useState(null);
+    const [isEmailPanelOpen, setIsEmailPanelOpen] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [search, setSearch] = useState('');
     const [notification, setNotification] = useState(null);
@@ -259,6 +262,15 @@ function Dashboard({ token }) {
                                             </div>
                                         ) : (
                                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                <button
+                                                    type="button"
+                                                    className="btn"
+                                                    onClick={() => { setEmailMember(member); setIsEmailPanelOpen(true); }}
+                                                    style={{ padding: '0.25rem 0.5rem', background: '#e0f2fe', color: '#0369a1' }}
+                                                    title="Send Welcome Email"
+                                                >
+                                                    <MailIcon size={16} />
+                                                </button>
                                                 <button type="button" className="btn" onClick={() => handleOpenPanel(member)} style={{ padding: '0.25rem 0.5rem', background: '#f1f5f9' }}><Edit2 size={16} /></button>
                                                 <button type="button" className="btn" onClick={() => deleteMember(member.id)} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: 'var(--danger)' }}><Trash2 size={16} /></button>
                                             </div>
@@ -284,6 +296,15 @@ function Dashboard({ token }) {
                 onClose={() => setIsImportOpen(false)}
                 token={token}
                 onComplete={fetchMembers}
+            />
+
+            <EmailDraftPanel
+                isOpen={isEmailPanelOpen}
+                onClose={() => setIsEmailPanelOpen(false)}
+                member={emailMember}
+                token={token}
+                groups={groups}
+                setNotification={setNotification}
             />
         </>
     );

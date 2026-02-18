@@ -224,6 +224,62 @@ app.get('/api/imports/:id', authenticate, async (req, res) => {
     }
 });
 
+const EmailService = require('./services/EmailService');
+// ... other imports ...
+
+// Settings routes
+app.get('/api/settings', authenticate, async (req, res) => {
+    try {
+        const settings = await db('settings').select('*');
+        const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+        res.json(settingsMap);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/settings', authenticate, async (req, res) => {
+    const settings = req.body;
+    try {
+        await db.transaction(async trx => {
+            for (const [key, value] of Object.entries(settings)) {
+                await trx('settings')
+                    .insert({ key, value })
+                    .onConflict('key')
+                    .merge();
+            }
+        });
+        res.json({ message: 'Settings updated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/members/:id/send-welcome', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { subject, body, to, cc } = req.body;
+
+    try {
+        const settings = await db('settings').select('*');
+        const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+
+        await EmailService.sendEmail({
+            to,
+            cc: cc || settingsMap.email_cc,
+            subject,
+            html: body,
+            fromName: settingsMap.email_from_name,
+            fromEmail: settingsMap.email_from_address,
+            replyTo: settingsMap.email_reply_to,
+            settings: settingsMap
+        });
+
+        res.json({ message: 'Email sent successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Catch-all for React routing
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
