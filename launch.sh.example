@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Ensure common paths are included (especially for Homebrew users on macOS)
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+# Define ports
+BACKEND_PORT=5000
+FRONTEND_PORT=5173
+
+echo "🚀 Starting Aquamen Management..."
+
+# Function to kill process on a specific port
+kill_port() {
+    local port=$1
+    local name=$2
+    local pid=$(lsof -t -i :$port)
+    
+    if [ -z "$pid" ]; then
+        echo "✅ Port $port ($name) is clear."
+    else
+        echo "⚠️  Cleaning up existing $name process on port $port (PID: $pid)..."
+        kill -9 $pid
+        sleep 1 # Wait for port to be released
+    fi
+}
+
+# Kill existing processes
+kill_port $BACKEND_PORT "Backend"
+kill_port $FRONTEND_PORT "Frontend"
+
+echo "✨ Environment cleaned up. Launching application..."
+
+# Start the application
+npm run dev

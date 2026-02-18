@@ -44,6 +44,23 @@ To start the both the backend and frontend development servers concurrently, run
 npm run dev
 ```
 
+### Simplified Launch (Local Only)
+
+For a cleaner local experience, you can use a launch script that automatically kills existing processes on ports 5000 and 5173 before starting.
+
+1.  Copy the example script:
+    ```bash
+    cp launch.sh.example launch.sh
+    chmod +x launch.sh
+    ```
+2.  Run the script directly:
+    ```bash
+    ./launch.sh
+    ```
+
+> [!NOTE]
+> `launch.sh` is ignored by git and is intended for local use only.
+
 -   **Frontend**: http://localhost:5173
 -   **Backend API**: http://localhost:5000
 
