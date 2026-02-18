@@ -11,7 +11,8 @@
     "start": "cd backend && npm start",
     "build:frontend": "cd frontend && npm install && npm run build",
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "users": "cd backend && npm run users --"
+    "users": "cd backend && npm run users --",
+    "members": "cd backend && npm run members --"
   },
   "keywords": [],
   "author": "",

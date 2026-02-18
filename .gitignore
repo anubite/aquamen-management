@@ -4,3 +4,4 @@ dist
 *.sqlite
 .DS_Store
 launch.sh
+dev_examples

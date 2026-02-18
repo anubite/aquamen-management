@@ -10,7 +10,8 @@
     "migrate": "knex migrate:latest",
     "seed": "knex seed:run",
     "migrate:make": "knex migrate:make",
-    "users": "node manage-users.js"
+    "users": "node manage-users.js",
+    "members": "node manage-members.js"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +24,9 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "knex": "^3.1.0",
-    "sqlite3": "^5.1.7"
+    "multer": "^2.0.2",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
