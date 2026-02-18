@@ -9,7 +9,8 @@
     "dev": "node --watch server.js",
     "migrate": "knex migrate:latest",
     "seed": "knex seed:run",
-    "migrate:make": "knex migrate:make"
+    "migrate:make": "knex migrate:make",
+    "users": "node manage-users.js"
   },
   "keywords": [],
   "author": "",

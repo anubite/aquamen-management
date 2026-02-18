@@ -66,6 +66,21 @@ For a cleaner local experience, you can use a launch script that automatically k
 > [!NOTE]
 > `launch.sh` is ignored by git and is intended for local use only.
 
+### User Management (CLI)
+
+You can manage user accounts (list, create, delete) via a built-in CLI tool. This is useful for administration on Render.com or local setup.
+
+From the `backend` directory:
+```bash
+npm run users -- list                      # List all users
+npm run users -- create username password  # Create a new user
+npm run users -- changepassword user pass   # Change user password
+npm run users -- delete username           # Delete a user
+```
+
+> [!TIP]
+> On Render.com, you can run these commands from the "Shell" tab in the dashboard.
+
 -   **Frontend**: http://localhost:5173
 -   **Backend API**: http://localhost:5000
 
