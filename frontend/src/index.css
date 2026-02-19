@@ -416,6 +416,8 @@ section h3 {
     background: var(--danger);
 }
 
+/* Avatars */
+
 /* Animations */
 @keyframes fadeIn {
     from {

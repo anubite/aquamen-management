@@ -44,7 +44,8 @@ exports.seed = async function (knex) {
     { key: 'smtp_host', value: '' },
     { key: 'smtp_port', value: '587' },
     { key: 'smtp_user', value: '' },
-    { key: 'smtp_pass', value: '' }
+    { key: 'smtp_pass', value: '' },
+    { key: 'smtp_secure', value: 'false' }
   ];
 
   for (const s of defaultSettings) {

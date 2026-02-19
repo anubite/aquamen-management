@@ -85,9 +85,21 @@ function Settings({ token }) {
                             <label>SMTP Host</label>
                             <input value={settings.smtp_host || ''} onChange={e => updateSetting('smtp_host', e.target.value)} placeholder="smtp.example.com" />
                         </div>
-                        <div className="form-group">
-                            <label>Port</label>
-                            <input value={settings.smtp_port || ''} onChange={e => updateSetting('smtp_port', e.target.value)} placeholder="587" />
+                        <div className="form-group flex items-end gap-10">
+                            <div>
+                                <label>Port</label>
+                                <input style={{ width: '80px' }} value={settings.smtp_port || ''} onChange={e => updateSetting('smtp_port', e.target.value)} placeholder="587" />
+                            </div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <input
+                                    type="checkbox"
+                                    id="smtp_secure"
+                                    checked={settings.smtp_secure === 'true'}
+                                    onChange={e => updateSetting('smtp_secure', e.target.checked ? 'true' : 'false')}
+                                    className="w-4 h-4"
+                                />
+                                <label htmlFor="smtp_secure" className="mb-0 cursor-pointer">Use SSL/TLS (required for Port 465)</label>
+                            </div>
                         </div>
                     </div>
                     <div className="form-grid">

@@ -4,10 +4,13 @@ class EmailService {
     static async sendEmail({ to, cc, subject, html, fromName, fromEmail, replyTo, settings }) {
         // SMTP Configuration from settings or environment
         // For development/Render, these will be set in Settings UI
+        const port = parseInt(process.env.SMTP_PORT || settings.smtp_port || 587);
         const config = {
             host: process.env.SMTP_HOST || settings.smtp_host,
-            port: parseInt(process.env.SMTP_PORT || settings.smtp_port || 587),
-            secure: process.env.SMTP_SECURE === 'true'
+            port: port,
+            secure: process.env.SMTP_SECURE !== undefined
+                ? process.env.SMTP_SECURE === 'true'
+                : (settings.smtp_secure === 'true' || port === 465)
         };
 
         const user = process.env.SMTP_USER || settings.smtp_user;
