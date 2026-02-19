@@ -38,7 +38,6 @@ exports.seed = async function (knex) {
     { key: 'email_reply_to', value: 'info@aquamen.cz' },
     { key: 'email_cc', value: '' },
     { key: 'template_en_subject', value: 'Welcome to Aquamen, {{first_name}}!' },
-    { key: 'template_en_body', value: '<p>Hello <strong>{{first_name}} {{surname}}</strong>,</p><p>Welcome to our team! You have been assigned to <strong>Group {{group_id}}</strong> (Trainer: {{group_trainer}}).</p><p>We are excited to have you with us!</p>' },
     { key: 'template_cz_subject', value: 'Vítejte v Aquamen, {{first_name}}!' },
     { key: 'template_cz_body', value: '<p>Ahoj <strong>{{first_name}} {{surname}}</strong>,</p><p>Vítej v našem týmu! Byl(a) jsi zařazen(a) do <strong>Skupiny {{group_id}}</strong> (Trenér: {{group_trainer}}).</p><p>Těšíme se na tebe!</p>' },
     { key: 'smtp_host', value: '' },
