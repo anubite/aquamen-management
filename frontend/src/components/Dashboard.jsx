@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon, Shield } from 'lucide-react';
 import MemberSidePanel from './MemberSidePanel';
 import ImportDashboard from './ImportDashboard';
 import EmailDraftPanel from './EmailDraftPanel';
@@ -197,6 +197,7 @@ function Dashboard({ token }) {
                                 <th>Email</th>
                                 <th>Group</th>
                                 <th>Status</th>
+                                <th>GDPR</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
@@ -252,6 +253,19 @@ function Dashboard({ token }) {
                                                 <MoreHorizontal size={14} style={{ color: 'var(--text-muted)' }} />
                                             </div>
                                         )}
+                                    </td>
+                                    <td data-label="GDPR">
+                                        <div className="flex items-center gap-1">
+                                            {member.gdpr_consent ? (
+                                                <span className="badge badge-active flex items-center gap-1" style={{ background: '#ecfdf5', color: '#059669' }}>
+                                                    <Shield size={12} /> Consented
+                                                </span>
+                                            ) : (
+                                                <span className="badge" style={{ background: '#fff7ed', color: '#d97706', border: '1px solid #ffedd5' }}>
+                                                    Pending
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td data-label="Actions" style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                                         {confirmDeleteId === member.id ? (

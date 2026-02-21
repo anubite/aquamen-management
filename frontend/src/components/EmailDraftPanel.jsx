@@ -24,7 +24,9 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups, setNotificati
         try {
             const res = await axios.get('/api/settings', authHeader);
             setSettings(res.data);
-            prepareDraft(res.data, templateLang);
+            const initialLang = member.language === 'Czech' ? 'cz' : 'en';
+            setTemplateLang(initialLang);
+            prepareDraft(res.data, initialLang);
         } catch (err) {
             console.error('Error preparation draft', err);
         } finally {

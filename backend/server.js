@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./db');
 const multer = require('multer');
 const fs = require('fs');
+const crypto = require('crypto');
 const MemberImporter = require('./services/MemberImporter');
 require('dotenv').config();
 
@@ -73,7 +74,7 @@ app.get('/api/members', authenticate, async (req, res) => {
 });
 
 app.post('/api/members', authenticate, async (req, res) => {
-    const { id, name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth } = req.body;
+    const { id, name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth, gdpr_consent, language } = req.body;
 
     if (date_of_birth) {
         const dob = new Date(date_of_birth);
@@ -94,7 +95,9 @@ app.post('/api/members', authenticate, async (req, res) => {
             street_number,
             zip_code,
             city,
-            date_of_birth
+            date_of_birth,
+            gdpr_consent: gdpr_consent === true || gdpr_consent === 1 ? 1 : 0,
+            language: language || 'English'
         };
         if (id) insertData.id = id;
 
@@ -108,7 +111,7 @@ app.post('/api/members', authenticate, async (req, res) => {
 });
 
 app.put('/api/members/:id', authenticate, async (req, res) => {
-    const { name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth } = req.body;
+    const { name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth, gdpr_consent, language } = req.body;
 
     if (date_of_birth) {
         const dob = new Date(date_of_birth);
@@ -120,7 +123,11 @@ app.put('/api/members/:id', authenticate, async (req, res) => {
     try {
         const changes = await db('members')
             .where({ id: req.params.id })
-            .update({ name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth });
+            .update({
+                name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth,
+                gdpr_consent: gdpr_consent === true || gdpr_consent === 1 ? 1 : 0,
+                language: language || 'English'
+            });
         res.json({ message: 'Member updated', changes });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -227,6 +234,64 @@ app.get('/api/imports/:id', authenticate, async (req, res) => {
 const EmailService = require('./services/EmailService');
 // ... other imports ...
 
+// Public GDPR routes
+app.get('/api/public/gdpr/:token', async (req, res) => {
+    try {
+        const member = await db('members').where({ gdpr_token: req.params.token }).first();
+        if (!member) return res.status(404).json({ error: 'Invalid or expired GDPR link' });
+
+        const settings = await db('settings').select('*');
+        const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+
+        res.json({
+            member: {
+                name: member.name,
+                surname: member.surname,
+                phone: member.phone,
+                street: member.street,
+                street_number: member.street_number,
+                city: member.city,
+                zip_code: member.zip_code,
+                date_of_birth: member.date_of_birth,
+                language: member.language
+            },
+            policies: {
+                cz: settingsMap.gdpr_policy_cz,
+                en: settingsMap.gdpr_policy_en
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/public/gdpr/:token', async (req, res) => {
+    const { street, street_number, city, zip_code, date_of_birth, language, phone } = req.body;
+
+    try {
+        const member = await db('members').where({ gdpr_token: req.params.token }).first();
+        if (!member) return res.status(404).json({ error: 'Invalid or expired GDPR link' });
+
+        await db('members')
+            .where({ id: member.id })
+            .update({
+                street,
+                street_number,
+                city,
+                zip_code,
+                date_of_birth,
+                language,
+                phone,
+                gdpr_consent: true,
+                gdpr_token: null // Expire the token
+            });
+
+        res.json({ message: 'GDPR consent recorded successfully' });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
 // Settings routes
 app.get('/api/settings', authenticate, async (req, res) => {
     try {
@@ -263,11 +328,28 @@ app.post('/api/members/:id/send-welcome', authenticate, async (req, res) => {
         const settings = await db('settings').select('*');
         const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
 
+        let finalBody = body;
+        if (body.includes('{{gdpr_link}}')) {
+            let member = await db('members').where({ id }).first();
+            let token = member.gdpr_token;
+
+            if (!token) {
+                token = crypto.randomBytes(32).toString('hex');
+                await db('members').where({ id }).update({ gdpr_token: token });
+            }
+
+            const frontendUrl = process.env.FRONTEND_URL;
+            const gdprLink = frontendUrl
+                ? `${frontendUrl.replace(/\/$/, '')}/gdpr/${token}`
+                : `${req.headers['x-forwarded-proto'] || req.protocol}://${req.headers.host}/gdpr/${token}`;
+            finalBody = body.replace(/{{gdpr_link}}/g, gdprLink);
+        }
+
         await EmailService.sendEmail({
             to,
             cc: cc || settingsMap.email_cc,
             subject,
-            html: body,
+            html: finalBody,
             fromName: settingsMap.email_from_name,
             fromEmail: settingsMap.email_from_address,
             replyTo: settingsMap.email_reply_to,

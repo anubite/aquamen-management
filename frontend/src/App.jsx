@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import GroupManagement from './components/GroupManagement';
 import { LogOut, Users, Layers, Settings as SettingsIcon, Menu, X } from 'lucide-react';
 import Settings from './components/Settings';
+import GDPRForm from './components/GDPRForm';
 
 const ProtectedRoute = ({ token, children }) => {
     if (!token) return <Navigate to="/login" replace />;
@@ -21,7 +22,7 @@ const Navigation = ({ token, setToken }) => {
         setIsMenuOpen(false);
     };
 
-    if (!token) return null;
+    if (!token || location.pathname.startsWith('/gdpr/')) return null;
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const closeMenu = () => setIsMenuOpen(false);
@@ -88,6 +89,8 @@ function App() {
                                 <Settings token={token} />
                             </ProtectedRoute>
                         } />
+
+                        <Route path="/gdpr/:token" element={<GDPRForm />} />
 
                         <Route path="/" element={<Navigate to="/members" replace />} />
                     </Routes>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Save, Loader2, Mail, Globe, Server, CheckCircle2 } from 'lucide-react';
+import { Save, Loader2, Mail, Globe, Server, CheckCircle2, Shield, Wand2 } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -136,6 +136,45 @@ function Settings({ token }) {
                     </div>
                 </section>
 
+                <section>
+                    <div className="flex justify-between items-center border-b pb-2 mb-6">
+                        <h3 className="flex items-center gap-2 mb-0"><Shield size={20} /> GDPR Policies</h3>
+                        <button
+                            type="button"
+                            className="btn btn-sm flex items-center gap-2"
+                            style={{ background: '#f8fafc' }}
+                            onClick={() => {
+                                const czPolicy = "<h1>Zásady ochrany osobních údajů (GDPR)</h1><p>V Aquamen bereme ochranu vašich osobních údajů vážně. Shromažďujeme vaše jméno, email, datum narození a adresu výhradně pro účely správy členství a informování o trénincích.</p><p>Vaše údaje nejsou předávány třetím stranám bez vašeho výslovného souhlasu.</p>";
+                                const enPolicy = "<h1>Privacy Policy (GDPR)</h1><p>At Aquamen, we take your privacy seriously. We collect your name, email, date of birth, and address solely for membership management and training updates.</p><p>Your data is never shared with third parties without your explicit consent.</p>";
+                                updateSetting('gdpr_policy_cz', czPolicy);
+                                updateSetting('gdpr_policy_en', enPolicy);
+                            }}
+                        >
+                            <Wand2 size={14} /> AI Generate Defaults
+                        </button>
+                    </div>
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label><Globe size={14} /> Czech GDPR Policy</label>
+                            <ReactQuill
+                                theme="snow"
+                                value={settings.gdpr_policy_cz || ''}
+                                onChange={val => updateSetting('gdpr_policy_cz', val)}
+                                className="bg-white rounded"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label><Globe size={14} /> English GDPR Policy</label>
+                            <ReactQuill
+                                theme="snow"
+                                value={settings.gdpr_policy_en || ''}
+                                onChange={val => updateSetting('gdpr_policy_en', val)}
+                                className="bg-white rounded"
+                            />
+                        </div>
+                    </div>
+                </section>
+
                 <div className="grid grid-cols-2 gap-10">
                     <section>
                         <h3 className="flex items-center gap-2 border-b pb-2 mb-6"><Globe size={20} /> Czech Template</h3>
@@ -174,7 +213,7 @@ function Settings({ token }) {
 
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700">
                     <strong>Placeholders:</strong> You can use the following placeholders in subjects and bodies:
-                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>
+                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>

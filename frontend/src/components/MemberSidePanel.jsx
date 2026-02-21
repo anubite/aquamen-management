@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, Phone, MapPin, Hash, Mail, User } from 'lucide-react';
+import { X, Save, Calendar, Phone, MapPin, Hash, Mail, User, Globe } from 'lucide-react';
 import axios from 'axios';
 
 function MemberSidePanel({ member, isOpen, onClose, onSave, groups }) {
@@ -107,6 +107,26 @@ function MemberSidePanel({ member, isOpen, onClose, onSave, groups }) {
                                     <option value="Canceled">Canceled</option>
                                 </select>
                             </div>
+                        </div>
+                        <div className="form-group mt-4">
+                            <label><Globe size={14} /> Preferred Language</label>
+                            <select name="language" value={form.language || 'English'} onChange={handleChange}>
+                                <option value="English">English</option>
+                                <option value="Czech">Czech</option>
+                            </select>
+                        </div>
+                        <div className="mt-4">
+                            <label className="flex items-center gap-2 cursor-pointer w-fit" style={{ display: 'flex', alignItems: 'center', color: 'inherit', marginBottom: 0 }}>
+                                <input
+                                    type="checkbox"
+                                    style={{ width: 'auto', margin: 0 }}
+                                    checked={form.gdpr_consent === true || form.gdpr_consent === 1}
+                                    onChange={e => setForm({ ...form, gdpr_consent: e.target.checked })}
+                                />
+                                <span className="text-sm font-semibold whitespace-nowrap">
+                                    GDPR Consent Provided
+                                </span>
+                            </label>
                         </div>
                     </section>
 
