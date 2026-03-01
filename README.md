@@ -89,6 +89,11 @@ npm run users -- delete username           # Delete a user
 -   `backend/`: Express server, SQLite database logic, and API routes.
 -   `frontend/`: React application built with Vite and Tailwind CSS.
 -   `package.json`: Root configuration for managing the full-stack workspace.
+-   `CLAUDE.md`: Development guidelines for Claude Code and other AI agents.
+
+## Development with AI
+
+This project is optimized for development with **Claude Code**. If you are using Claude, refer to [CLAUDE.md](file:///Users/jirka/Documents/aquamen-management/CLAUDE.md) for a comprehensive list of commands, coding standards, and project architecture details.
 ## Deployment
 
 The project is pre-configured for deployment to **Render.com**.
