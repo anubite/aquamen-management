@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import GroupManagement from './components/GroupManagement';
@@ -10,6 +11,27 @@ import GDPRForm from './components/GDPRForm';
 const ProtectedRoute = ({ token, children }) => {
     if (!token) return <Navigate to="/login" replace />;
     return children;
+};
+
+const AuthInterceptor = ({ setToken }) => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const interceptor = axios.interceptors.response.use(
+            res => res,
+            err => {
+                if (err.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    setToken(null);
+                    navigate('/login', { replace: true });
+                }
+                return Promise.reject(err);
+            }
+        );
+        return () => axios.interceptors.response.eject(interceptor);
+    }, [navigate, setToken]);
+
+    return null;
 };
 
 const Navigation = ({ token, setToken }) => {
@@ -63,6 +85,7 @@ function App() {
 
     return (
         <BrowserRouter>
+            <AuthInterceptor setToken={setToken} />
             <div className="container" style={{ padding: '2rem 1rem' }}>
                 <Navigation token={token} setToken={setToken} />
                 <main>
