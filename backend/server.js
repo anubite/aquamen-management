@@ -8,17 +8,46 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const MemberImporter = require('./services/MemberImporter');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const SECRET = process.env.JWT_SECRET || 'aquamen_secret_key_123';
+
+if (!process.env.JWT_SECRET) {
+    console.error('[FATAL] JWT_SECRET environment variable is not set. Refusing to start.');
+    process.exit(1);
+}
+const SECRET = process.env.JWT_SECRET;
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, max: 10,
+    standardHeaders: true, legacyHeaders: false,
+    message: { error: 'Too many login attempts, please try again later.' }
+});
+
+const emailSendLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, max: 20,
+    standardHeaders: true, legacyHeaders: false,
+    message: { error: 'Too many email send requests, please try again later.' }
+});
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Multer config for imports
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const xlsxFileFilter = (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (file.mimetype !== XLSX_MIME || ext !== '.xlsx') {
+        return cb(new Error('Only .xlsx files are allowed.'));
+    }
+    cb(null, true);
+};
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = path.join(__dirname, 'uploads/imports');
@@ -28,10 +57,11 @@ const storage = multer.diskStorage({
         cb(null, dir);
     },
     filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
+        cb(null, `${Date.now()}.xlsx`); // no original name — prevents path traversal
     }
 });
-const upload = multer({ storage });
+
+const upload = multer({ storage, fileFilter: xlsxFileFilter, limits: { fileSize: MAX_FILE_SIZE_BYTES } });
 
 // Middleware to verify JWT
 const authenticate = (req, res, next) => {
@@ -46,7 +76,7 @@ const authenticate = (req, res, next) => {
 };
 
 // Auth routes
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
     const { username, password } = req.body;
     try {
         const user = await db('users').where({ username }).first();
@@ -320,7 +350,7 @@ app.put('/api/settings', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/members/:id/send-welcome', authenticate, async (req, res) => {
+app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async (req, res) => {
     const { id } = req.params;
     const { subject, body, to, cc } = req.body;
 
@@ -360,6 +390,17 @@ app.post('/api/members/:id/send-welcome', authenticate, async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// Multer error handler
+app.use((err, req, res, next) => {
+    if (err?.code?.startsWith('LIMIT_')) {
+        return res.status(413).json({ error: 'File too large. Maximum size is 10 MB.' });
+    }
+    if (err?.message === 'Only .xlsx files are allowed.') {
+        return res.status(400).json({ error: err.message });
+    }
+    next(err);
 });
 
 // Catch-all for React routing

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Check, Shield, Globe, Info, AlertCircle, Save } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const GDPRForm = () => {
     const { token } = useParams();
@@ -289,7 +290,7 @@ const GDPRForm = () => {
                             </h2>
                             <div
                                 className="text-slate-400 leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: lang === 'Czech' ? policies.cz : policies.en }}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(lang === 'Czech' ? policies.cz : policies.en) }}
                             />
                         </div>
                     </div>
