@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon, Shield } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import MemberSidePanel from './MemberSidePanel';
 import ImportDashboard from './ImportDashboard';
 import EmailDraftPanel from './EmailDraftPanel';
 
 const API_URL = '/api';
+const PAGE_SIZE = 20;
 
 function Dashboard({ token }) {
     const [members, setMembers] = useState([]);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [page, setPage] = useState(1);
+
     const [groups, setGroups] = useState([]);
     const [selectedMember, setSelectedMember] = useState(null);
     const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -26,22 +31,19 @@ function Dashboard({ token }) {
 
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    useEffect(() => {
-        fetchMembers();
-        fetchGroups();
-    }, [token]);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
-
-    const fetchMembers = async () => {
+    const fetchMembers = async (currentPage = page) => {
         try {
-            const res = await axios.get(`${API_URL}/members`, authHeader);
-            setMembers(res.data);
+            const params = {
+                page: currentPage,
+                limit: PAGE_SIZE,
+                search,
+                status: statusFilter,
+                group_id: groupFilter,
+            };
+            const res = await axios.get(`${API_URL}/members`, { ...authHeader, params });
+            setMembers(res.data.members);
+            setTotal(res.data.total);
+            setTotalPages(res.data.totalPages);
         } catch (err) {
             console.error('Error fetching members', err);
         }
@@ -56,14 +58,30 @@ function Dashboard({ token }) {
         }
     };
 
-    const handleOpenPanel = (member = null) => {
-        if (!member) {
-            const maxId = members.reduce((max, m) => Math.max(max, m.id || 0), 0);
-            const nextId = Math.max(maxId + 1, 1000);
-            setSelectedMember({ id: nextId, status: 'Active' });
-        } else {
-            setSelectedMember(member);
+    // Refetch when filters change — reset to page 1
+    useEffect(() => {
+        setPage(1);
+        fetchMembers(1);
+    }, [search, statusFilter, groupFilter]);
+
+    // Refetch when page changes (without resetting page)
+    useEffect(() => {
+        fetchMembers(page);
+    }, [page]);
+
+    useEffect(() => {
+        fetchGroups();
+    }, [token]);
+
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => setNotification(null), 5000);
+            return () => clearTimeout(timer);
         }
+    }, [notification]);
+
+    const handleOpenPanel = (member = null) => {
+        setSelectedMember(member || { status: 'Active' });
         setIsPanelOpen(true);
         setConfirmDeleteId(null);
     };
@@ -87,7 +105,7 @@ function Dashboard({ token }) {
 
     const handleSaveMember = async (memberData) => {
         try {
-            if (memberData.id && members.some(m => m.id === memberData.id)) {
+            if (memberData.id) {
                 await axios.put(`${API_URL}/members/${memberData.id}`, memberData, authHeader);
             } else {
                 await axios.post(`${API_URL}/members`, memberData, authHeader);
@@ -120,12 +138,26 @@ function Dashboard({ token }) {
         }
     };
 
-    const filteredMembers = Array.isArray(members) ? members.filter(m => {
-        const matchesSearch = `${m.name} ${m.surname} ${m.email} ${m.phone || ''}`.toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = statusFilter === 'All' || m.status === statusFilter;
-        const matchesGroup = groupFilter === 'All' || m.group_id === groupFilter;
-        return matchesSearch && matchesStatus && matchesGroup;
-    }) : [];
+    const paginationBar = (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius)', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '500' }}>
+                {total} member{total !== 1 ? 's' : ''}{totalPages > 1 ? ` — page ${page} of ${totalPages}` : ''}
+            </span>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button className="btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}
+                    style={{ padding: '0.35rem 0.75rem', background: page <= 1 ? '#e2e8f0' : 'var(--primary)', color: page <= 1 ? 'var(--text-muted)' : 'white', cursor: page <= 1 ? 'default' : 'pointer' }}>
+                    <ChevronLeft size={16} />
+                </button>
+                <span style={{ fontSize: '0.875rem', fontWeight: '600', minWidth: '3rem', textAlign: 'center' }}>
+                    {page} / {totalPages}
+                </span>
+                <button className="btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}
+                    style={{ padding: '0.35rem 0.75rem', background: page >= totalPages ? '#e2e8f0' : 'var(--primary)', color: page >= totalPages ? 'var(--text-muted)' : 'white', cursor: page >= totalPages ? 'default' : 'pointer' }}>
+                    <ChevronRight size={16} />
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <>
@@ -148,7 +180,7 @@ function Dashboard({ token }) {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
                         <div style={{ position: 'relative', flex: 1, minWidth: '250px', maxWidth: '400px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -187,7 +219,9 @@ function Dashboard({ token }) {
                     </div>
                 </div>
 
-                <div className="table-container">
+                {paginationBar}
+
+                <div className="table-container" style={{ margin: '1rem 0' }}>
                     <table>
                         <thead>
                             <tr>
@@ -202,7 +236,7 @@ function Dashboard({ token }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredMembers.map(member => (
+                            {members.map(member => (
                                 <tr key={member.id} className="member-row" onClick={() => handleOpenPanel(member)} style={{ cursor: 'pointer' }}>
                                     <td data-label="ID">{member.id}</td>
                                     <td data-label="Name">{member.name}</td>
@@ -295,6 +329,8 @@ function Dashboard({ token }) {
                         </tbody>
                     </table>
                 </div>
+
+                {paginationBar}
             </div>
 
             <MemberSidePanel

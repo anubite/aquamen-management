@@ -93,11 +93,37 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 // Members routes
 app.get('/api/members', authenticate, async (req, res) => {
     try {
-        const rows = await db('members as m')
+        const page     = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit    = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+        const offset   = (page - 1) * limit;
+        const search   = (req.query.search   || '').trim();
+        const status   = req.query.status   || '';
+        const group_id = req.query.group_id || '';
+
+        let query = db('members as m')
             .leftJoin('groups as g', 'm.group_id', 'g.id')
-            .select('m.*', 'g.trainer as group_trainer')
             .orderBy('m.id', 'desc');
-        res.json(rows);
+
+        if (search) {
+            query = query.whereRaw(
+                "LOWER(m.name || ' ' || m.surname || ' ' || m.email || ' ' || COALESCE(m.phone, '')) LIKE ?",
+                [`%${search.toLowerCase()}%`]
+            );
+        }
+        if (status && status !== 'All') query = query.where('m.status', status);
+        if (group_id && group_id !== 'All') query = query.where('m.group_id', group_id);
+
+        const [{ count }] = await query.clone().count('m.id as count');
+        const total      = parseInt(count);
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+
+        const members = await query
+            .clone()
+            .select('m.*', 'g.trainer as group_trainer')
+            .limit(limit)
+            .offset(offset);
+
+        res.json({ members, total, page, limit, totalPages });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -228,8 +254,10 @@ app.post('/api/imports/members', authenticate, upload.single('file'), async (req
         });
 
         const importer = new MemberImporter(db, importId);
-        // Run in background
-        importer.process(req.file.path);
+        // Run in background — .catch() prevents unhandled rejection if error escapes internal handler
+        importer.process(req.file.path).catch(err =>
+            console.error('[Import] Unhandled background error:', err)
+        );
 
         res.json({ importId, message: 'Import started' });
     } catch (err) {
