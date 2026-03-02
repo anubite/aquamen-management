@@ -1083,3 +1083,18 @@ section h3 {
     .overview-filter-bar input { font-size: 0.875rem; }
 }
 
+/* GDPR policy rendered HTML */
+.policy-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+.policy-text ul,
+.policy-text ol {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+.policy-text ul { list-style: disc; }
+.policy-text ol { list-style: decimal; }
+.policy-text li { margin-bottom: 0.25rem; }
+.policy-text p { margin-bottom: 0.75rem; }
+

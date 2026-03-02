@@ -323,6 +323,7 @@ app.get('/api/imports/:id', authenticate, async (req, res) => {
 });
 
 const EmailService = require('./services/EmailService');
+const { parseClubBankAccount, buildQrUrl, fetchQrAsBase64, buildQrImageTag } = require('./services/QrPaymentService');
 // ... other imports ...
 
 // Public GDPR routes
@@ -420,8 +421,14 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
         const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
 
         let finalBody = body;
-        if (body.includes('{{gdpr_link}}')) {
-            let member = await db('members').where({ id }).first();
+
+        // Fetch member once if any server-side placeholder is present
+        let member = null;
+        if (finalBody.includes('{{gdpr_link}}') || finalBody.includes('{{qr_payment_code}}')) {
+            member = await db('members').where({ id }).first();
+        }
+
+        if (finalBody.includes('{{gdpr_link}}')) {
             let token = member.gdpr_token;
 
             if (!token) {
@@ -433,7 +440,36 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
             const gdprLink = frontendUrl
                 ? `${frontendUrl.replace(/\/$/, '')}/gdpr/${token}`
                 : `${req.headers['x-forwarded-proto'] || req.protocol}://${req.headers.host}/gdpr/${token}`;
-            finalBody = body.replace(/{{gdpr_link}}/g, gdprLink);
+            finalBody = finalBody.replace(/{{gdpr_link}}/g, gdprLink);
+        }
+
+        let qrWarning = null;
+        if (finalBody.includes('{{qr_payment_code}}')) {
+            const { accountNumber, bankCode } = parseClubBankAccount(settingsMap.club_bank_account);
+            let qrTag = '';
+
+            if (!accountNumber || !bankCode) {
+                qrWarning = 'QR code skipped: club_bank_account not configured in Settings.';
+            } else {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                const feeSetting = await db('fee_settings')
+                    .where('valid_from', '<=', currentMonth)
+                    .where(function () { this.whereNull('valid_to').orWhere('valid_to', '>=', currentMonth); })
+                    .orderBy('valid_from', 'desc')
+                    .first();
+                const amount = feeSetting
+                    ? (member.member_type === 'student' ? feeSetting.student_amount : feeSetting.regular_amount)
+                    : 0;
+                const url = buildQrUrl({ accountNumber, bankCode, amount, memberId: member.id, memberName: `${member.name} ${member.surname}` });
+                const base64 = await fetchQrAsBase64(url);
+                if (base64) {
+                    qrTag = buildQrImageTag(base64);
+                } else {
+                    qrWarning = `QR code generation failed. URL tried: ${url}`;
+                    console.error('QR code generation failed. URL:', url);
+                }
+            }
+            finalBody = finalBody.replace(/{{qr_payment_code}}/g, qrTag);
         }
 
         await EmailService.sendEmail({
@@ -447,7 +483,7 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
             settings: settingsMap
         });
 
-        res.json({ message: 'Email sent successfully' });
+        res.json({ message: 'Email sent successfully', ...(qrWarning ? { qrWarning } : {}) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

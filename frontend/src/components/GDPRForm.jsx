@@ -289,7 +289,7 @@ const GDPRForm = () => {
                                 {t.gdprTitle}
                             </h2>
                             <div
-                                className="text-slate-400 leading-relaxed"
+                                className="text-slate-400 leading-relaxed policy-text"
                                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(lang === 'Czech' ? policies.cz : policies.en) }}
                             />
                         </div>

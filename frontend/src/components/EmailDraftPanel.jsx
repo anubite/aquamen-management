@@ -48,7 +48,8 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
             first_name: member.name || '',
             surname: member.surname || '',
             group_id: member.group_id || 'N/A',
-            group_trainer: group.trainer || 'N/A'
+            group_trainer: group.trainer || 'N/A',
+            id: String(member.id || ''),
         };
 
         let subject = subjectTemplate;
@@ -79,8 +80,12 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
         e.preventDefault();
         setIsSending(true);
         try {
-            await axios.post(`/api/members/${member.id}/send-welcome`, draft, authHeader);
-            setNotification({ message: 'Welcome email sent successfully!', type: 'success' });
+            const result = await axios.post(`/api/members/${member.id}/send-welcome`, draft, authHeader);
+            if (result.data.qrWarning) {
+                setNotification({ message: `Email sent, but: ${result.data.qrWarning}`, type: 'error' });
+            } else {
+                setNotification({ message: 'Welcome email sent successfully!', type: 'success' });
+            }
             onClose();
         } catch (err) {
             setNotification({ message: 'Failed to send email: ' + (err.response?.data?.error || err.message), type: 'error' });

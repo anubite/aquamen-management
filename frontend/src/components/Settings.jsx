@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Save, Loader2, Mail, Globe, Server, CheckCircle2, Shield, Wand2 } from 'lucide-react';
+import { Save, Loader2, Mail, Globe, Server, CheckCircle2, Shield, Wand2, CreditCard } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useNotification } from '../context/NotificationContext';
@@ -54,6 +54,15 @@ function Settings({ token }) {
             </div>
 
             <form onSubmit={handleSave} className="space-y-10">
+                <section>
+                    <h3 className="flex items-center gap-2 border-b pb-2 mb-6"><CreditCard size={20} /> Club Info</h3>
+                    <div className="form-group" style={{ maxWidth: '400px' }}>
+                        <label>Bank Account (for QR payment codes)</label>
+                        <input value={settings.club_bank_account || ''} onChange={e => updateSetting('club_bank_account', e.target.value)} placeholder="192000145/0300" />
+                        <small style={{ color: 'var(--text-muted)' }}>Format: accountNumber/bankCode</small>
+                    </div>
+                </section>
+
                 <section>
                     <h3 className="flex items-center gap-2 border-b pb-2 mb-6"><Server size={20} /> SMTP Configuration</h3>
                     <div className="form-grid">
@@ -189,7 +198,7 @@ function Settings({ token }) {
 
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700">
                     <strong>Placeholders:</strong> You can use the following placeholders in subjects and bodies:
-                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>
+                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>, <code>{"{{id}}"}</code>, <code>{"{{qr_payment_code}}"}</code>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
