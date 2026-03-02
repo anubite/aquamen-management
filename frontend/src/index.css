@@ -713,3 +713,53 @@ section h3 {
         padding-top: 1rem;
     }
 }
+
+/* ─── Transactions / Summary cards ─────────────────────────────────────────── */
+
+.summary-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.summary-card {
+    flex: 1 1 160px;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: white;
+    min-width: 140px;
+}
+
+.summary-card .summary-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.summary-card .summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+/* ─── Category color swatch ─────────────────────────────────────────────────── */
+
+.color-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* ─── Expandable rows (category rules) ──────────────────────────────────────── */
+
+.expandable-row-content {
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+}
+

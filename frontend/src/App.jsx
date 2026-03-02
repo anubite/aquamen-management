@@ -4,7 +4,9 @@ import axios from 'axios';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import GroupManagement from './components/GroupManagement';
-import { LogOut, Users, Layers, Settings as SettingsIcon, Menu, X } from 'lucide-react';
+import TransactionsDashboard from './components/TransactionsDashboard';
+import CategoryManagement from './components/CategoryManagement';
+import { LogOut, Users, Layers, Settings as SettingsIcon, Menu, X, Receipt, Tag } from 'lucide-react';
 import Settings from './components/Settings';
 import GDPRForm from './components/GDPRForm';
 
@@ -60,6 +62,12 @@ const Navigation = ({ token, setToken }) => {
                     <Link to="/groups" onClick={closeMenu} className={`btn ${location.pathname === '/groups' ? 'btn-primary' : ''}`} style={{ background: location.pathname === '/groups' ? '' : 'transparent', color: location.pathname === '/groups' ? '' : 'var(--text)' }}>
                         <Layers size={18} /> Groups
                     </Link>
+                    <Link to="/transactions" onClick={closeMenu} className={`btn ${location.pathname === '/transactions' ? 'btn-primary' : ''}`} style={{ background: location.pathname === '/transactions' ? '' : 'transparent', color: location.pathname === '/transactions' ? '' : 'var(--text)' }}>
+                        <Receipt size={18} /> Transactions
+                    </Link>
+                    <Link to="/categories" onClick={closeMenu} className={`btn ${location.pathname === '/categories' ? 'btn-primary' : ''}`} style={{ background: location.pathname === '/categories' ? '' : 'transparent', color: location.pathname === '/categories' ? '' : 'var(--text)' }}>
+                        <Tag size={18} /> Categories
+                    </Link>
                     <Link to="/settings" onClick={closeMenu} className={`btn ${location.pathname === '/settings' ? 'btn-primary' : ''}`} style={{ background: location.pathname === '/settings' ? '' : 'transparent', color: location.pathname === '/settings' ? '' : 'var(--text)' }}>
                         <SettingsIcon size={18} /> Settings
                     </Link>
@@ -104,6 +112,18 @@ function App() {
                         <Route path="/groups" element={
                             <ProtectedRoute token={token}>
                                 <GroupManagement token={token} />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/transactions" element={
+                            <ProtectedRoute token={token}>
+                                <TransactionsDashboard token={token} />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/categories" element={
+                            <ProtectedRoute token={token}>
+                                <CategoryManagement token={token} />
                             </ProtectedRoute>
                         } />
 
