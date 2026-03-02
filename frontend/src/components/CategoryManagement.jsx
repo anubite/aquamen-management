@@ -198,7 +198,7 @@ function CategoryManagement({ token }) {
                 <div className="glass" style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: 'var(--radius)' }}>
                     <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Add New Category</h3>
                     <form onSubmit={addCategory}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto auto', gap: '1rem', alignItems: 'end' }}>
+                        <div className="category-add-grid">
                             <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label>Name *</label>
                                 <input required value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="e.g. Membership" />
@@ -305,7 +305,7 @@ function CategoryManagement({ token }) {
 
                                                 {addingRuleForCat === cat.id && (
                                                     <form onSubmit={addRule} style={{ marginBottom: '1rem', padding: '1rem', background: 'white', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 80px auto', gap: '0.75rem', alignItems: 'end' }}>
+                                                        <div className="rule-add-grid">
                                                             <div className="form-group" style={{ marginBottom: 0 }}>
                                                                 <label>Field</label>
                                                                 <select value={newRule.field} onChange={e => {

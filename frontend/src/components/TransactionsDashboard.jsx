@@ -239,8 +239,8 @@ function TransactionsDashboard({ token }) {
                 {/* Filter bar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
                     {/* Row 1: Search + action buttons */}
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                        <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '200px' }}>
+                    <div className="filter-row" style={{ justifyContent: 'space-between' }}>
+                        <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '160px' }}>
                             <label>Search</label>
                             <div style={{ position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -248,7 +248,7 @@ function TransactionsDashboard({ token }) {
                                     onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '2.25rem', width: '100%' }} />
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignSelf: 'flex-end' }}>
+                        <div className="action-buttons">
                             <button className="btn" style={{ background: '#f1f5f9' }} onClick={handleAutoCategories} title="Re-run categorization rules on uncategorized transactions">
                                 <Wand2 size={16} /> Auto-categorize
                             </button>
@@ -266,7 +266,7 @@ function TransactionsDashboard({ token }) {
                     </div>
 
                     {/* Row 2: From / To / Month */}
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div className="filter-row">
                         <div className="form-group" style={{ marginBottom: 0 }}>
                             <label>From</label>
                             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ width: 'auto' }} />
@@ -285,7 +285,7 @@ function TransactionsDashboard({ token }) {
                     </div>
 
                     {/* Row 3: Category / Type / Member Link + Clear Filters */}
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div className="filter-row">
                         <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '120px' }}>
                             <label>Category</label>
                             <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ width: '100%' }}>
@@ -324,7 +324,7 @@ function TransactionsDashboard({ token }) {
                         borderRadius: 'var(--radius)', marginBottom: '1rem' }}>
 
                         {/* Header row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
                                 {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''} selected
                             </span>
@@ -335,12 +335,12 @@ function TransactionsDashboard({ token }) {
                         </div>
 
                         {/* Action row */}
-                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div className="bulk-panel-actions">
                             {/* Category group */}
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                                <div className="form-group" style={{ marginBottom: 0 }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flex: 1 }}>
+                                <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
                                     <label>Set Category</label>
-                                    <select value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value)} style={{ minWidth: '180px' }}>
+                                    <select value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value)} style={{ width: '100%' }}>
                                         <option value="">— Remove category —</option>
                                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
@@ -352,12 +352,12 @@ function TransactionsDashboard({ token }) {
                             </div>
 
                             {/* Member group */}
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                                <div className="form-group" style={{ marginBottom: 0, position: 'relative' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flex: 1 }}>
+                                <div className="form-group" style={{ marginBottom: 0, position: 'relative', flex: 1 }}>
                                     <label>Set Member</label>
                                     <input value={bulkMemberSearch}
                                         onChange={e => { setBulkMemberSearch(e.target.value); if (!e.target.value) setBulkMemberId(''); }}
-                                        placeholder="Search or leave blank to unlink…" style={{ width: '240px' }} />
+                                        placeholder="Search or leave blank to unlink…" style={{ width: '100%' }} />
                                     {bulkMemberSearch.length >= 2 && !bulkMemberId && (() => {
                                         const hits = members.filter(m =>
                                             normalize(`${m.name} ${m.surname} ${m.email}`).includes(normalize(bulkMemberSearch))

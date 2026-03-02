@@ -168,6 +168,47 @@ tr:hover {
     color: #991b1b;
 }
 
+/* ─── Responsive layout helpers ─────────────────────────────────────────────── */
+
+/* Shared filter row — flex row that stacks on mobile via media query */
+.filter-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+/* Action button cluster — row that becomes 2-col grid on mobile */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Bulk panel action row — horizontal flex that stacks on mobile */
+.bulk-panel-actions {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+/* Category add-form grid */
+.category-add-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+/* Rule add-form grid */
+.rule-add-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 80px auto;
+    gap: 0.75rem;
+    align-items: end;
+}
+
 /* Mobile optimization */
 @media (max-width: 640px) {
     .table-container {
@@ -210,6 +251,85 @@ tr:hover {
         content: attr(data-label);
         font-weight: 600;
         color: var(--text-muted);
+    }
+
+    /* Form grids collapse to 1 column */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .grid-cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .category-add-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .rule-add-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Action button groups — 2-column grid on mobile */
+    .action-buttons {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    /* Filter rows stack vertically */
+    .filter-row {
+        flex-direction: column;
+    }
+
+    .filter-row > * {
+        width: 100%;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .filter-row input[type="date"],
+    .filter-row input[type="text"],
+    .filter-row select {
+        width: 100% !important;
+    }
+
+    /* Bulk panel actions stack vertically */
+    .bulk-panel-actions {
+        flex-direction: column;
+    }
+
+    .bulk-panel-actions > div {
+        width: 100%;
+    }
+
+    .bulk-panel-actions input,
+    .bulk-panel-actions select {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Side panel full-width */
+    .side-panel {
+        max-width: 100%;
+    }
+
+    /* Summary cards full width */
+    .summary-card {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    /* Modal scrollable from top on small screens */
+    .modal-overlay {
+        align-items: flex-start;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+
+    /* Outer container tighter padding */
+    .container {
+        padding: 0.75rem 0.5rem !important;
     }
 }
 

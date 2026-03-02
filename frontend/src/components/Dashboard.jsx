@@ -182,7 +182,7 @@ function Dashboard({ token }) {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
-                        <div style={{ position: 'relative', flex: 1, minWidth: '250px', maxWidth: '400px' }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: '150px', maxWidth: '400px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
                                 type="text"

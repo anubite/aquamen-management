@@ -116,7 +116,7 @@ function Settings({ token }) {
 
                 <section>
                     <h3 className="flex items-center gap-2 border-b pb-2 mb-6"><Mail size={20} /> Sender Info</h3>
-                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                         <div className="form-group">
                             <label>From Name</label>
                             <input value={settings.email_from_name || ''} onChange={e => updateSetting('email_from_name', e.target.value)} />
