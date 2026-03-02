@@ -190,6 +190,15 @@ class TransactionImporter extends ExcelProcessor {
             return;
         }
 
+        // Enforce 2020-01 calculation boundary
+        if (txData.transaction_date < '2020-01-01') {
+            this.skippedCount++;
+            await this.log(rowNumber, 'warning',
+                `Skipped: transaction date ${txData.transaction_date} is before the allowed start date (2020-01-01)`
+            );
+            return;
+        }
+
         // Compute unique hash (with occurrence tracking)
         const hash = this.computeHash(txData);
 

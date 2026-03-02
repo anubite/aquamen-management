@@ -69,6 +69,8 @@ h2 {
     justify-content: center;
     padding: 0.5rem 1rem;
     border-radius: var(--radius);
+    font-size: 1rem;
+    font-family: inherit;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -838,6 +840,56 @@ section h3 {
     }
 }
 
+/* ─── Manage dropdown ────────────────────────────────────────────────────────── */
+
+.nav-manage-dropdown {
+    position: relative;
+}
+
+.nav-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 170px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 0.4rem 0;
+    z-index: 200;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.97);
+}
+
+.nav-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.nav-dropdown-item:hover {
+    background: var(--background);
+}
+
+.nav-dropdown-item.active {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Mobile: hide desktop dropdown, show flat items */
+.nav-manage-mobile { display: none; }
+
+@media (max-width: 768px) {
+    .nav-manage-dropdown { display: none; }
+    .nav-manage-mobile {
+        display: contents; /* renders children into parent flex flow */
+    }
+}
+
 /* ─── Transactions / Summary cards ─────────────────────────────────────────── */
 
 .summary-bar {
@@ -910,5 +962,124 @@ section h3 {
 @keyframes slideDown {
     from { transform: translateY(-100%); opacity: 0; }
     to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ─── Overview Dashboard ─────────────────────────────────────────────────── */
+
+.overview-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 10;
+}
+
+/* Desktop pivot table */
+.overview-table-wrap {
+    border-radius: 12px;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+}
+
+.overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+
+.overview-table th,
+.overview-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+.overview-table thead th {
+    background: rgba(255,255,255,0.9);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.overview-table tbody tr:last-child td { border-bottom: none; }
+.overview-table tbody tr:hover td { background-color: rgba(0,119,190,0.04) !important; }
+
+/* Sticky left (member name) */
+.overview-sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(4px);
+}
+
+.overview-table thead .overview-sticky-left { z-index: 4; }
+
+/* Sticky right (fees due) */
+.overview-sticky-right {
+    position: sticky;
+    right: 0;
+    z-index: 3;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(4px);
+    border-left: 1px solid var(--border) !important;
+    min-width: 130px;
+}
+
+.overview-table thead .overview-sticky-right { z-index: 4; }
+
+/* Column widths */
+.overview-col-member { min-width: 160px; }
+.overview-col-month  { min-width: 80px; text-align: center; }
+.overview-col-fees   { min-width: 140px; }
+
+.overview-cell { text-align: center; }
+
+/* Legend */
+.overview-legend {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 1rem;
+}
+
+/* Mobile cards — hidden on desktop */
+.overview-mobile-cards { display: none; }
+
+.overview-mobile-card {
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.overview-mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    cursor: pointer;
+    gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    /* Hide desktop table, show mobile cards */
+    .overview-table-wrap { display: none; }
+    .overview-mobile-cards { display: block; }
+
+    .overview-filter-bar {
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .overview-filter-bar input { font-size: 0.875rem; }
 }
 

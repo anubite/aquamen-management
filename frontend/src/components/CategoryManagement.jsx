@@ -39,7 +39,7 @@ function CategoryManagement({ token }) {
     const [expandedId, setExpandedId] = useState(null);
     // Category add/edit state
     const [isAdding, setIsAdding] = useState(false);
-    const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#0077be' });
+    const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#0077be', is_membership_fee: false });
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [confirmDeleteCatId, setConfirmDeleteCatId] = useState(null);
@@ -77,7 +77,7 @@ function CategoryManagement({ token }) {
         try {
             await axios.post(`${API_URL}/transaction-categories`, newCategory, authHeader);
             setIsAdding(false);
-            setNewCategory({ name: '', description: '', color: '#0077be' });
+            setNewCategory({ name: '', description: '', color: '#0077be', is_membership_fee: false });
             fetchCategories();
             setNotification({ message: 'Category added', type: 'success' });
         } catch (err) {
@@ -87,7 +87,7 @@ function CategoryManagement({ token }) {
 
     const startEditCat = (cat) => {
         setEditingId(cat.id);
-        setEditForm({ name: cat.name, description: cat.description || '', color: cat.color });
+        setEditForm({ name: cat.name, description: cat.description || '', color: cat.color, is_membership_fee: Boolean(cat.is_membership_fee) });
         setConfirmDeleteCatId(null);
         setIsAdding(false);
     };
@@ -195,6 +195,15 @@ function CategoryManagement({ token }) {
                                 <input type="color" value={newCategory.color} onChange={e => setNewCategory({ ...newCategory, color: e.target.value })}
                                     style={{ width: '50px', height: '38px', padding: '2px', cursor: 'pointer' }} />
                             </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label>Membership Fee</label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: 0, height: '38px' }}>
+                                    <input type="checkbox" style={{ width: 'auto', margin: 0 }}
+                                        checked={newCategory.is_membership_fee}
+                                        onChange={e => setNewCategory({ ...newCategory, is_membership_fee: e.target.checked })} />
+                                    <span style={{ fontSize: '0.875rem' }}>Mark as membership fee</span>
+                                </label>
+                            </div>
                             <div style={{ display: 'flex', gap: '0.5rem', paddingBottom: '2px' }}>
                                 <button type="submit" className="btn btn-primary" style={{ padding: '0.625rem 1.5rem' }}>Save</button>
                                 <button type="button" className="btn" onClick={() => setIsAdding(false)} style={{ background: '#e2e8f0', padding: '0.625rem 1rem' }}>Cancel</button>
@@ -211,6 +220,7 @@ function CategoryManagement({ token }) {
                             <th style={{ width: '30px' }}></th>
                             <th>Category</th>
                             <th>Description</th>
+                            <th>Fee</th>
                             <th>Rules</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                         </tr>
@@ -244,6 +254,18 @@ function CategoryManagement({ token }) {
                                             <span style={{ color: 'var(--text-muted)' }}>{cat.description || '-'}</span>
                                         )}
                                     </td>
+                                    <td data-label="Fee" onClick={e => e.stopPropagation()}>
+                                        {editingId === cat.id ? (
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', margin: 0 }}>
+                                                <input type="checkbox" style={{ width: 'auto', margin: 0 }}
+                                                    checked={editForm.is_membership_fee}
+                                                    onChange={e => setEditForm({ ...editForm, is_membership_fee: e.target.checked })} />
+                                                <span style={{ fontSize: '0.8rem' }}>Membership fee</span>
+                                            </label>
+                                        ) : cat.is_membership_fee ? (
+                                            <span className="badge" style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: '0.75rem' }}>Membership Fee</span>
+                                        ) : null}
+                                    </td>
                                     <td data-label="Rules">
                                         <span className="badge" style={{ background: '#f1f5f9', color: 'var(--text)' }}>
                                             <Filter size={12} style={{ marginRight: '4px' }} />
@@ -273,7 +295,7 @@ function CategoryManagement({ token }) {
 
                                 {expandedId === cat.id && (
                                     <tr>
-                                        <td colSpan="5" style={{ padding: 0 }}>
+                                        <td colSpan="6" style={{ padding: 0 }}>
                                             <div className="expandable-row-content">
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                                     <h4 style={{ margin: 0, color: 'var(--text-muted)' }}>
@@ -409,7 +431,7 @@ function CategoryManagement({ token }) {
                             </React.Fragment>
                         ))}
                         {categories.length === 0 && (
-                            <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No categories yet. Create one to start auto-categorizing transactions.</td></tr>
+                            <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No categories yet. Create one to start auto-categorizing transactions.</td></tr>
                         )}
                     </tbody>
                 </table>

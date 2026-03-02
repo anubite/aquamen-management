@@ -107,6 +107,13 @@ function MemberSidePanel({ member, isOpen, onClose, onSave, groups }) {
                                     <option value="Canceled">Canceled</option>
                                 </select>
                             </div>
+                            <div className="form-group">
+                                <label>Member Type</label>
+                                <select name="member_type" value={form.member_type || 'regular'} onChange={handleChange}>
+                                    <option value="regular">Regular</option>
+                                    <option value="student">Student</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="form-group mt-4">
                             <label><Globe size={14} /> Preferred Language</label>

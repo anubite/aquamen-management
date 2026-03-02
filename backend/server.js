@@ -9,6 +9,14 @@ const fs = require('fs');
 const crypto = require('crypto');
 const MemberImporter = require('./services/MemberImporter');
 const TransactionImporter = require('./services/TransactionImporter');
+const {
+    recalculateMembers,
+    getMemberStatusForMonth,
+    getMemberTypeForMonth,
+    getFeeForMonth,
+    addMonths,
+    CALC_START_MONTH,
+} = require('./services/FeeCalculator');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
@@ -131,7 +139,7 @@ app.get('/api/members', authenticate, async (req, res) => {
 });
 
 app.post('/api/members', authenticate, async (req, res) => {
-    const { id, name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth, gdpr_consent, language } = req.body;
+    const { id, name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth, gdpr_consent, language, member_type } = req.body;
 
     if (date_of_birth) {
         const dob = new Date(date_of_birth);
@@ -154,7 +162,8 @@ app.post('/api/members', authenticate, async (req, res) => {
             city,
             date_of_birth,
             gdpr_consent: gdpr_consent === true || gdpr_consent === 1 ? 1 : 0,
-            language: language || 'English'
+            language: language || 'English',
+            member_type: member_type || 'regular'
         };
         if (id) insertData.id = id;
 
@@ -168,7 +177,7 @@ app.post('/api/members', authenticate, async (req, res) => {
 });
 
 app.put('/api/members/:id', authenticate, async (req, res) => {
-    const { name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth, gdpr_consent, language } = req.body;
+    const { name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth, gdpr_consent, language, member_type } = req.body;
 
     if (date_of_birth) {
         const dob = new Date(date_of_birth);
@@ -178,13 +187,36 @@ app.put('/api/members/:id', authenticate, async (req, res) => {
     }
 
     try {
+        const existing = await db('members').where({ id: req.params.id }).first();
+        if (!existing) return res.status(404).json({ error: 'Member not found' });
+
         const changes = await db('members')
             .where({ id: req.params.id })
             .update({
                 name, surname, email, group_id, status, phone, street, street_number, zip_code, city, date_of_birth,
                 gdpr_consent: gdpr_consent === true || gdpr_consent === 1 ? 1 : 0,
-                language: language || 'English'
+                language: language || 'English',
+                member_type: member_type || existing.member_type || 'regular'
             });
+
+        // Write audit log entries for status and type changes
+        const auditEntries = [];
+        if (status && status !== existing.status) {
+            auditEntries.push({ member_id: req.params.id, field: 'status', old_value: existing.status, new_value: status });
+        }
+        const newType = member_type || existing.member_type || 'regular';
+        if (newType !== existing.member_type) {
+            auditEntries.push({ member_id: req.params.id, field: 'type', old_value: existing.member_type, new_value: newType });
+        }
+        if (auditEntries.length > 0) {
+            await db('member_audit_log').insert(auditEntries);
+        }
+
+        // Recalculate fees for this member (fire-and-forget)
+        recalculateMembers(db, [parseInt(req.params.id)]).catch(err =>
+            console.error('[FeeCalc] Recalculate error after member update:', err)
+        );
+
         res.json({ message: 'Member updated', changes });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -433,13 +465,14 @@ app.get('/api/transaction-categories', authenticate, async (req, res) => {
 });
 
 app.post('/api/transaction-categories', authenticate, async (req, res) => {
-    const { name, description, color } = req.body;
+    const { name, description, color, is_membership_fee } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
     try {
         const [id] = await db('transaction_categories').insert({
             name: name.trim(),
             description: description || null,
-            color: color || '#64748b'
+            color: color || '#64748b',
+            is_membership_fee: is_membership_fee ? 1 : 0
         });
         const category = await db('transaction_categories').where({ id }).first();
         res.status(201).json(category);
@@ -450,12 +483,23 @@ app.post('/api/transaction-categories', authenticate, async (req, res) => {
 });
 
 app.put('/api/transaction-categories/:id', authenticate, async (req, res) => {
-    const { name, description, color } = req.body;
+    const { name, description, color, is_membership_fee } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
     try {
+        const existing = await db('transaction_categories').where({ id: req.params.id }).first();
         await db('transaction_categories').where({ id: req.params.id }).update({
-            name: name.trim(), description: description || null, color: color || '#64748b'
+            name: name.trim(),
+            description: description || null,
+            color: color || '#64748b',
+            is_membership_fee: is_membership_fee ? 1 : 0
         });
+        // If is_membership_fee flag changed, recalculate all members
+        const flagChanged = existing && Boolean(existing.is_membership_fee) !== Boolean(is_membership_fee);
+        if (flagChanged) {
+            recalculateMembers(db).catch(err =>
+                console.error('[FeeCalc] Recalculate error after category flag change:', err)
+            );
+        }
         res.json({ message: 'Category updated' });
     } catch (err) {
         if (err.message.includes('UNIQUE')) return res.status(400).json({ error: 'Category name already exists' });
@@ -465,7 +509,14 @@ app.put('/api/transaction-categories/:id', authenticate, async (req, res) => {
 
 app.delete('/api/transaction-categories/:id', authenticate, async (req, res) => {
     try {
+        const existing = await db('transaction_categories').where({ id: req.params.id }).first();
         await db('transaction_categories').where({ id: req.params.id }).del();
+        // If deleted category was the membership fee category, recalculate all members
+        if (existing?.is_membership_fee) {
+            recalculateMembers(db).catch(err =>
+                console.error('[FeeCalc] Recalculate error after membership category deleted:', err)
+            );
+        }
         res.json({ message: 'Category deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -781,6 +832,308 @@ app.put('/api/transactions/:id/link-member', authenticate, async (req, res) => {
         res.json({ message: 'Member link updated' });
     } catch (err) {
         res.status(400).json({ error: err.message });
+    }
+});
+
+// ─── Fee Settings ─────────────────────────────────────────────────────────
+
+app.get('/api/fee-settings', authenticate, async (req, res) => {
+    try {
+        const rows = await db('fee_settings').select('*').orderBy('valid_from', 'asc');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/fee-settings', authenticate, async (req, res) => {
+    const { valid_from, regular_amount, student_amount } = req.body;
+
+    if (!valid_from || !/^\d{4}-\d{2}$/.test(valid_from))
+        return res.status(400).json({ error: 'valid_from is required and must be YYYY-MM format' });
+    if (!regular_amount || parseFloat(regular_amount) <= 0)
+        return res.status(400).json({ error: 'regular_amount must be a positive number' });
+    if (!student_amount || parseFloat(student_amount) <= 0)
+        return res.status(400).json({ error: 'student_amount must be a positive number' });
+
+    // Enforce: valid_from must be next calendar month or later
+    const today = new Date();
+    let nm = today.getMonth() + 2, ny = today.getFullYear();
+    if (nm > 12) { nm = 1; ny++; }
+    const nextMonth = `${ny}-${String(nm).padStart(2, '0')}`;
+    if (valid_from < nextMonth)
+        return res.status(400).json({ error: `valid_from must be at least next month (${nextMonth})` });
+
+    try {
+        const openPeriod = await db('fee_settings').whereNull('valid_to').first();
+        if (openPeriod && valid_from <= openPeriod.valid_from)
+            return res.status(400).json({ error: 'New period must start after the existing open period' });
+
+        if (openPeriod) {
+            // Close the previous open period one month before the new one starts
+            const [y, m] = valid_from.split('-').map(Number);
+            let pm = m - 1, py = y;
+            if (pm < 1) { pm = 12; py--; }
+            const prevMonthStr = `${py}-${String(pm).padStart(2, '0')}`;
+            await db('fee_settings').where({ id: openPeriod.id }).update({ valid_to: prevMonthStr });
+        }
+
+        const [id] = await db('fee_settings').insert({
+            valid_from,
+            valid_to: null,
+            regular_amount: parseFloat(regular_amount),
+            student_amount: parseFloat(student_amount),
+        });
+        const newRow = await db('fee_settings').where({ id }).first();
+        res.status(201).json(newRow);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/fee-settings/:id', authenticate, async (req, res) => {
+    const { regular_amount, student_amount } = req.body;
+    if (!regular_amount || parseFloat(regular_amount) <= 0)
+        return res.status(400).json({ error: 'regular_amount must be a positive number' });
+    if (!student_amount || parseFloat(student_amount) <= 0)
+        return res.status(400).json({ error: 'student_amount must be a positive number' });
+    try {
+        await db('fee_settings').where({ id: req.params.id }).update({
+            regular_amount: parseFloat(regular_amount),
+            student_amount: parseFloat(student_amount),
+        });
+        res.json({ message: 'Fee setting updated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/fee-settings/:id', authenticate, async (req, res) => {
+    try {
+        const row = await db('fee_settings').where({ id: req.params.id }).first();
+        if (!row) return res.status(404).json({ error: 'Fee setting not found' });
+        if (row.valid_to !== null)
+            return res.status(400).json({ error: 'Only the current (open-ended) fee period can be deleted' });
+
+        await db('fee_settings').where({ id: req.params.id }).del();
+
+        // Restore the previous period to open-ended
+        const prev = await db('fee_settings').orderBy('valid_from', 'desc').first();
+        if (prev) await db('fee_settings').where({ id: prev.id }).update({ valid_to: null });
+
+        res.json({ message: 'Fee period deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── Overview / Pivot ──────────────────────────────────────────────────────
+
+app.get('/api/overview/pivot', authenticate, async (req, res) => {
+    try {
+        const monthsParam    = req.query.months || '';
+        const memberIdsParam = req.query.member_ids || '';
+
+        // Membership fee category IDs
+        const membershipCatIds = (
+            await db('transaction_categories').where('is_membership_fee', true).select('id')
+        ).map(r => r.id);
+
+        // Fix 1: default 6 months, sorted newest-first (frontend reverses for display)
+        let months;
+        if (monthsParam) {
+            months = monthsParam.split(',').map(m => m.trim()).filter(m => /^\d{4}-\d{2}$/.test(m));
+            months.sort((a, b) => b.localeCompare(a));
+        } else {
+            if (membershipCatIds.length > 0) {
+                const rows = await db('transactions')
+                    .whereIn('category_id', membershipCatIds)
+                    .select(db.raw("SUBSTR(transaction_date, 1, 7) as month"))
+                    .distinct()
+                    .orderBy('month', 'desc')
+                    .limit(6);
+                months = rows.map(r => r.month);
+            }
+            if (!months || months.length === 0) {
+                // Fallback: last 6 calendar months
+                months = [];
+                const now = new Date();
+                let y = now.getFullYear(), m = now.getMonth() + 1;
+                for (let i = 0; i < 6; i++) {
+                    months.push(`${y}-${String(m).padStart(2, '0')}`);
+                    if (--m < 1) { m = 12; y--; }
+                }
+            }
+        }
+
+        // Fix 4: member status filter (default: active)
+        const statusFilter = req.query.status || 'active';
+        let membersQuery = db('members').select('id', 'name', 'surname', 'member_type', 'status');
+        if (memberIdsParam) {
+            const ids = memberIdsParam.split(',').map(s => parseInt(s)).filter(n => !isNaN(n));
+            membersQuery = membersQuery.whereIn('id', ids);
+        } else if (statusFilter === 'canceled') {
+            membersQuery = membersQuery.where('status', 'Canceled');
+        } else if (statusFilter === 'all') {
+            // no status filter — all members
+        } else {
+            // default: active only
+            membersQuery = membersQuery.where('status', 'Active');
+        }
+        const members = await membersQuery;
+        if (members.length === 0) return res.json({ months, members: [] });
+
+        const memberIds = members.map(m => m.id);
+
+        const [feeSettings, auditLog, feesDue] = await Promise.all([
+            db('fee_settings').select('*').orderBy('valid_from', 'asc'),
+            db('member_audit_log').whereIn('member_id', memberIds)
+                .select('member_id', 'field', 'old_value', 'new_value', 'changed_at')
+                .orderBy('changed_at', 'asc'),
+            db('member_fees_due').whereIn('member_id', memberIds).select('*'),
+        ]);
+        const feesDueMap = Object.fromEntries(feesDue.map(r => [r.member_id, r]));
+
+        // Fix 2: find effective start month (first membership-fee tx in the system)
+        const firstTxRow = membershipCatIds.length > 0
+            ? await db('transactions').whereIn('category_id', membershipCatIds)
+                .min('transaction_date as minDate').first()
+            : null;
+        const firstTxMonth = firstTxRow?.minDate ? firstTxRow.minDate.slice(0, 7) : null;
+        const effectiveStart = firstTxMonth && firstTxMonth > CALC_START_MONTH
+            ? firstTxMonth
+            : CALC_START_MONTH;
+
+        // Transactions for displayed months only
+        const minMonth = months[months.length - 1];
+        const maxMonth = months[0];
+        const txs = membershipCatIds.length > 0
+            ? await db('transactions')
+                .whereIn('member_id', memberIds)
+                .whereIn('category_id', membershipCatIds)
+                .where('transaction_date', '>=', minMonth + '-01')
+                .where('transaction_date', '<=', maxMonth + '-31')
+                .select('member_id', 'transaction_date', 'amount')
+            : [];
+
+        const pivotMembers = members.map(member => {
+            const log = auditLog.filter(e => e.member_id === member.id);
+            const memberTx = txs.filter(t => t.member_id === member.id);
+
+            const paidByMonth = {};
+            for (const t of memberTx) {
+                const mon = t.transaction_date.slice(0, 7);
+                paidByMonth[mon] = (paidByMonth[mon] || 0) + t.amount;
+            }
+
+            const payments = {};
+            for (const month of months) {
+                // Fix 2: skip months before the effective start
+                if (month < effectiveStart) {
+                    payments[month] = { amount_paid: 0, amount_due: 0, is_active: false };
+                    continue;
+                }
+                // Fix 3: pass member.status as default for getMemberStatusForMonth
+                const status = getMemberStatusForMonth(log, member.status, month);
+                let amountDue = 0;
+                if (status === 'Active') {
+                    const type = getMemberTypeForMonth(log, member.member_type, month);
+                    amountDue = getFeeForMonth(feeSettings, type, month);
+                }
+                payments[month] = {
+                    amount_paid: paidByMonth[month] || 0,
+                    amount_due:  amountDue,
+                    is_active:   amountDue > 0,
+                };
+            }
+
+            const fd = feesDueMap[member.id];
+            return {
+                id: member.id,
+                name: member.name,
+                surname: member.surname,
+                member_type: member.member_type,
+                status: member.status,
+                fees_due: fd ? {
+                    outstanding:    fd.outstanding,
+                    override_amount: fd.override_amount,
+                    override_at:    fd.override_at,
+                    override_note:  fd.override_note,
+                    recalculated_at: fd.recalculated_at,
+                    unpaid_months:  JSON.parse(fd.unpaid_months || '[]'),
+                } : null,
+                payments,
+            };
+        });
+
+        pivotMembers.sort((a, b) =>
+            `${a.surname} ${a.name}`.localeCompare(`${b.surname} ${b.name}`)
+        );
+
+        res.json({ months, members: pivotMembers });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/overview/recalculate', authenticate, async (req, res) => {
+    try {
+        const updated = await recalculateMembers(db);
+        res.json({ message: 'Recalculation complete', updated });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/overview/members/:id/fees-override', authenticate, async (req, res) => {
+    const { override_amount, override_note } = req.body;
+    if (override_amount === undefined || override_amount === null || isNaN(parseFloat(override_amount)))
+        return res.status(400).json({ error: 'override_amount is required and must be a number' });
+
+    try {
+        const member = await db('members').where({ id: req.params.id }).first();
+        if (!member) return res.status(404).json({ error: 'Member not found' });
+
+        const override_at = new Date().toISOString();
+        const existing = await db('member_fees_due').where({ member_id: req.params.id }).first();
+        if (existing) {
+            await db('member_fees_due').where({ member_id: req.params.id }).update({
+                override_amount: parseFloat(override_amount),
+                override_at,
+                override_note: override_note || null,
+            });
+        } else {
+            await db('member_fees_due').insert({
+                member_id: req.params.id,
+                total_calculated_due: 0,
+                total_paid: 0,
+                outstanding: parseFloat(override_amount),
+                override_amount: parseFloat(override_amount),
+                override_at,
+                override_note: override_note || null,
+            });
+        }
+
+        // Recalculate to apply override in the outstanding field
+        await recalculateMembers(db, [parseInt(req.params.id)]);
+        const updated = await db('member_fees_due').where({ member_id: req.params.id }).first();
+        res.json({ message: 'Override saved', fees_due: updated });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/overview/members/:id/fees-override', authenticate, async (req, res) => {
+    try {
+        await db('member_fees_due').where({ member_id: req.params.id }).update({
+            override_amount: null,
+            override_at:     null,
+            override_note:   null,
+        });
+        await recalculateMembers(db, [parseInt(req.params.id)]);
+        res.json({ message: 'Override cleared' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
