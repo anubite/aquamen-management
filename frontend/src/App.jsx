@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
+import { NotificationProvider } from './context/NotificationContext';
 import axios from 'axios';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -93,6 +94,7 @@ function App() {
 
     return (
         <BrowserRouter>
+            <NotificationProvider>
             <AuthInterceptor setToken={setToken} />
             <div className="container" style={{ padding: '2rem 1rem' }}>
                 <Navigation token={token} setToken={setToken} />
@@ -142,6 +144,7 @@ function App() {
                     &copy; 2026 Aquamen Swimming Team Administration
                 </footer>
             </div>
+            </NotificationProvider>
         </BrowserRouter>
     );
 }

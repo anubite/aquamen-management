@@ -245,6 +245,10 @@ tr:hover {
         padding: 0.25rem 0;
         display: flex;
         justify-content: space-between;
+        max-width: none !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: normal !important;
     }
 
     td::before {
@@ -881,5 +885,30 @@ section h3 {
     padding: 1rem 1.25rem;
     background: #f8fafc;
     border-top: 1px solid var(--border);
+}
+
+/* ── Global Notification Bar ─────────────────────────────── */
+.notification-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    padding: 0.55rem 1.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #fff;
+    cursor: pointer;
+    animation: slideDown 0.25s ease-out;
+    backdrop-filter: blur(4px);
+}
+
+.notification-success { background: rgba(16, 185, 129, 0.88); }
+.notification-error   { background: rgba(220, 38, 38, 0.88);  }
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
 }
 

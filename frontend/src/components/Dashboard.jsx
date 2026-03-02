@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon, 
 import MemberSidePanel from './MemberSidePanel';
 import ImportDashboard from './ImportDashboard';
 import EmailDraftPanel from './EmailDraftPanel';
+import { useNotification } from '../context/NotificationContext';
 
 const API_URL = '/api';
 const PAGE_SIZE = 20;
@@ -22,13 +23,13 @@ function Dashboard({ token }) {
     const [isEmailPanelOpen, setIsEmailPanelOpen] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [search, setSearch] = useState('');
-    const [notification, setNotification] = useState(null);
 
     const [statusFilter, setStatusFilter] = useState('All');
     const [groupFilter, setGroupFilter] = useState('All');
 
     const [editingCell, setEditingCell] = useState(null); // { memberId: id, field: 'status'|'group_id' }
 
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const fetchMembers = async (currentPage = page) => {
@@ -72,13 +73,6 @@ function Dashboard({ token }) {
     useEffect(() => {
         fetchGroups();
     }, [token]);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     const handleOpenPanel = (member = null) => {
         setSelectedMember(member || { status: 'Active' });
@@ -162,24 +156,6 @@ function Dashboard({ token }) {
     return (
         <>
             <div className="glass" style={{ padding: '2rem', borderRadius: '20px', position: 'relative', minHeight: '70vh' }}>
-                {notification && (
-                    <div style={{
-                        position: 'fixed',
-                        top: '20px',
-                        right: '20px',
-                        padding: '1rem 2rem',
-                        borderRadius: 'var(--radius)',
-                        background: notification.type === 'error' ? 'var(--danger)' : 'var(--success)',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        boxShadow: 'var(--shadow)',
-                        zIndex: 2000,
-                        animation: 'fadeIn 0.3s'
-                    }}>
-                        {notification.message}
-                    </div>
-                )}
-
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
                         <div style={{ position: 'relative', flex: 1, minWidth: '150px', maxWidth: '400px' }}>
@@ -354,7 +330,6 @@ function Dashboard({ token }) {
                 member={emailMember}
                 token={token}
                 groups={groups}
-                setNotification={setNotification}
             />
         </>
     );

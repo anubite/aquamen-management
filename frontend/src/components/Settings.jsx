@@ -3,25 +3,18 @@ import axios from 'axios';
 import { Save, Loader2, Mail, Globe, Server, CheckCircle2, Shield, Wand2 } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { useNotification } from '../context/NotificationContext';
 
 function Settings({ token }) {
     const [settings, setSettings] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [notification, setNotification] = useState(null);
-
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     useEffect(() => {
         fetchSettings();
     }, []);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     const fetchSettings = async () => {
         try {
@@ -56,23 +49,6 @@ function Settings({ token }) {
 
     return (
         <div className="glass p-8" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            {notification && (
-                <div style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    padding: '1rem 2rem',
-                    borderRadius: 'var(--radius)',
-                    background: notification.type === 'error' ? 'var(--danger)' : 'var(--success)',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    boxShadow: 'var(--shadow)',
-                    zIndex: 2000,
-                    animation: 'fadeIn 0.3s'
-                }}>
-                    {notification.message}
-                </div>
-            )}
             <div className="flex-between mb-8">
                 <h2 className="flex items-center gap-2"><Mail size={24} color="var(--primary)" /> Email Settings</h2>
             </div>

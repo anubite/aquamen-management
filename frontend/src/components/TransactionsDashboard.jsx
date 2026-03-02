@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import TransactionImport from './TransactionImport';
 import TransactionDetailPanel from './TransactionDetailPanel';
+import { useNotification } from '../context/NotificationContext';
 
 const API_URL = '/api';
 const PAGE_SIZE = 20;
@@ -43,8 +44,7 @@ function TransactionsDashboard({ token }) {
     const [bulkMemberSearch, setBulkMemberSearch] = useState('');
     const [bulkMemberId, setBulkMemberId] = useState('');
 
-    const [notification, setNotification] = useState(null);
-
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const fetchTransactions = async (currentPage = page) => {
@@ -101,13 +101,6 @@ function TransactionsDashboard({ token }) {
     }, [page]);
 
     useEffect(() => { fetchMeta(); }, [token]);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     const handleAutoCategories = async () => {
         try {
@@ -204,16 +197,6 @@ function TransactionsDashboard({ token }) {
     return (
         <>
             <div className="glass" style={{ padding: '2rem', borderRadius: '20px', position: 'relative', minHeight: '70vh' }}>
-                {notification && (
-                    <div style={{
-                        position: 'fixed', top: '20px', right: '20px', padding: '1rem 2rem',
-                        borderRadius: 'var(--radius)', background: notification.type === 'error' ? 'var(--danger)' : 'var(--success)',
-                        color: 'white', fontWeight: 'bold', boxShadow: 'var(--shadow)', zIndex: 2000, animation: 'fadeIn 0.3s'
-                    }}>
-                        {notification.message}
-                    </div>
-                )}
-
                 {/* Summary bar */}
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                     <div className="summary-card glass">

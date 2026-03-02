@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
 
 const API_URL = '/api';
 
@@ -11,20 +12,12 @@ function GroupManagement({ token }) {
     const [editForm, setEditForm] = useState({});
     const [isAdding, setIsAdding] = useState(false);
     const [newGroup, setNewGroup] = useState({ id: '', trainer: '' });
-    const [notification, setNotification] = useState(null);
-
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     useEffect(() => {
         fetchGroups();
     }, [token]);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     const fetchGroups = async () => {
         try {
@@ -100,20 +93,6 @@ function GroupManagement({ token }) {
 
     return (
         <div className="glass" style={{ padding: '2rem', borderRadius: '20px' }}>
-            {notification && (
-                <div style={{
-                    padding: '1rem',
-                    borderRadius: 'var(--radius)',
-                    marginBottom: '1rem',
-                    background: notification.type === 'error' ? 'var(--danger)' : '#10b981',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    animation: 'fadeIn 0.3s'
-                }}>
-                    {notification.message}
-                </div>
-            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 style={{ margin: 0 }}>Groups</h2>
                 <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>

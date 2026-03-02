@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Check, X, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
 
 const API_URL = '/api';
 
@@ -36,8 +37,6 @@ function CategoryManagement({ token }) {
     const [categories, setCategories] = useState([]);
     const [rules, setRules] = useState([]);
     const [expandedId, setExpandedId] = useState(null);
-    const [notification, setNotification] = useState(null);
-
     // Category add/edit state
     const [isAdding, setIsAdding] = useState(false);
     const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#0077be' });
@@ -52,16 +51,10 @@ function CategoryManagement({ token }) {
     const [editRuleForm, setEditRuleForm] = useState({});
     const [confirmDeleteRuleId, setConfirmDeleteRuleId] = useState(null);
 
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     useEffect(() => { fetchCategories(); fetchRules(); }, [token]);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     const fetchCategories = async () => {
         try {
@@ -177,16 +170,6 @@ function CategoryManagement({ token }) {
 
     return (
         <div className="glass" style={{ padding: '2rem', borderRadius: '20px' }}>
-            {notification && (
-                <div style={{
-                    position: 'fixed', top: '20px', right: '20px', padding: '1rem 2rem',
-                    borderRadius: 'var(--radius)', background: notification.type === 'error' ? 'var(--danger)' : 'var(--success)',
-                    color: 'white', fontWeight: 'bold', boxShadow: 'var(--shadow)', zIndex: 2000, animation: 'fadeIn 0.3s'
-                }}>
-                    {notification.message}
-                </div>
-            )}
-
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 style={{ margin: 0 }}>Transaction Categories</h2>
                 <button type="button" className="btn btn-primary" onClick={() => { setIsAdding(true); setEditingId(null); setConfirmDeleteCatId(null); }}>

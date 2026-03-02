@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Tag, User, CreditCard, Building2, Hash, MessageSquare, Save, UserX } from 'lucide-react';
 import axios from 'axios';
+import { useNotification } from '../context/NotificationContext';
 
 function ReadOnlyField({ label, value, valueStyle }) {
     return (
@@ -24,8 +25,8 @@ function TransactionDetailPanel({ transaction, isOpen, onClose, categories, memb
     const [memberSearch, setMemberSearch] = useState('');
     const [isSavingCat, setIsSavingCat] = useState(false);
     const [isSavingMember, setIsSavingMember] = useState(false);
-    const [notification, setNotification] = useState(null);
 
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     useEffect(() => {
@@ -37,13 +38,6 @@ function TransactionDetailPanel({ transaction, isOpen, onClose, categories, memb
                 : '');
         }
     }, [transaction]);
-
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => setNotification(null), 4000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     if (!isOpen || !transaction) return null;
 
@@ -95,17 +89,6 @@ function TransactionDetailPanel({ transaction, isOpen, onClose, categories, memb
     return (
         <div className="side-panel-overlay" onClick={onClose}>
             <div className="side-panel glass" onClick={e => e.stopPropagation()}>
-                {notification && (
-                    <div style={{
-                        position: 'absolute', top: '1rem', left: '1rem', right: '1rem',
-                        padding: '0.75rem 1rem', borderRadius: 'var(--radius)',
-                        background: notification.type === 'error' ? 'var(--danger)' : 'var(--success)',
-                        color: 'white', fontWeight: 'bold', zIndex: 10, animation: 'fadeIn 0.3s'
-                    }}>
-                        {notification.message}
-                    </div>
-                )}
-
                 <div className="side-panel-header">
                     <h2>Transaction Detail</h2>
                     <button className="btn-icon" onClick={onClose}><X /></button>
@@ -198,7 +181,7 @@ function TransactionDetailPanel({ transaction, isOpen, onClose, categories, memb
                                 }}
                                 placeholder="Name, surname or email…"
                             />
-                            {filteredMembers.length > 0 && (
+                            {filteredMembers.length > 0 && !memberId && (
                                 <div style={{
                                     position: 'absolute', left: 0, right: 0,
                                     background: 'white', border: '1px solid var(--border)',

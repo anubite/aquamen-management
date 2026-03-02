@@ -3,14 +3,16 @@ import axios from 'axios';
 import { X, Mail, Send, Loader2, Globe, AlertCircle } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { useNotification } from '../context/NotificationContext';
 
-function EmailDraftPanel({ member, isOpen, onClose, token, groups, setNotification }) {
+function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
     const [templateLang, setTemplateLang] = useState('cz');
     const [draft, setDraft] = useState({ subject: '', body: '', to: '', cc: '' });
     const [settings, setSettings] = useState(null);
     const [isSending, setIsSending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
+    const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     useEffect(() => {
@@ -78,14 +80,10 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups, setNotificati
         setIsSending(true);
         try {
             await axios.post(`/api/members/${member.id}/send-welcome`, draft, authHeader);
-            if (setNotification) {
-                setNotification({ message: 'Welcome email sent successfully!', type: 'success' });
-            }
+            setNotification({ message: 'Welcome email sent successfully!', type: 'success' });
             onClose();
         } catch (err) {
-            if (setNotification) {
-                setNotification({ message: 'Failed to send email: ' + (err.response?.data?.error || err.message), type: 'error' });
-            }
+            setNotification({ message: 'Failed to send email: ' + (err.response?.data?.error || err.message), type: 'error' });
         } finally {
             setIsSending(false);
         }
