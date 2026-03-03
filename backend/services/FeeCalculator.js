@@ -251,22 +251,20 @@ function calculateMemberFees(member, auditLog, feeSettings, membershipTransactio
     // ── Total paid (all membership-fee transactions, all time) ─────
     const totalPaid = membershipTransactions.reduce((s, t) => s + t.amount, 0);
 
-    // ── FIFO unpaid-months: payments clear oldest obligations first ─
-    // Per-calendar-month paid (for display only)
+    // ── Per-calendar-month payments ────────────────────────────────
     const paidByMonth = {};
     for (const t of membershipTransactions) {
         const mon = t.transaction_date.slice(0, 7); // YYYY-MM
         paidByMonth[mon] = (paidByMonth[mon] || 0) + t.amount;
     }
 
-    let cumulativeDue = 0;
-    const unpaidMonths = [];
-    const monthData    = {};
+    // ── monthData + calendar deficit list ─────────────────────────
+    const monthData        = {};
+    const calendarDeficits = []; // { month, deficit } oldest-first
 
     for (const month of months) {
-        const amountDue      = obligations[month] || 0;
-        const amountPaid     = paidByMonth[month] || 0;
-        cumulativeDue       += amountDue;
+        const amountDue  = obligations[month] || 0;
+        const amountPaid = paidByMonth[month] || 0;
 
         monthData[month] = {
             amount_due:  amountDue,
@@ -274,8 +272,8 @@ function calculateMemberFees(member, auditLog, feeSettings, membershipTransactio
             is_active:   amountDue > 0,
         };
 
-        if (amountDue > 0 && totalPaid < cumulativeDue) {
-            unpaidMonths.push(month);
+        if (amountDue > 0 && amountPaid < amountDue) {
+            calendarDeficits.push({ month, deficit: amountDue - amountPaid });
         }
     }
 
@@ -289,6 +287,18 @@ function calculateMemberFees(member, auditLog, feeSettings, membershipTransactio
         outstanding = override.override_amount - paymentsAfter;
     } else {
         outstanding = totalCalculatedDue - totalPaid;
+    }
+
+    // ── Unpaid months: calendar months whose deficit explains outstanding ──
+    // Take oldest calendar-deficit months until their cumulative deficit
+    // reaches the outstanding balance. This keeps the list aligned with
+    // both the pivot table (per-calendar-month) and the outstanding total.
+    let deficitAcc = 0;
+    const unpaidMonths = [];
+    for (const { month, deficit } of calendarDeficits) {
+        if (outstanding <= 0 || deficitAcc >= outstanding) break;
+        unpaidMonths.push(month);
+        deficitAcc += deficit;
     }
 
     return { totalCalculatedDue, totalPaid, outstanding, unpaidMonths, monthData };
