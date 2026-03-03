@@ -198,7 +198,7 @@ function Settings({ token }) {
 
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700">
                     <strong>Placeholders:</strong> You can use the following placeholders in subjects and bodies:
-                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>, <code>{"{{id}}"}</code>, <code>{"{{qr_payment_code}}"}</code>
+                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>, <code>{"{{id}}"}</code>, <code>{"{{qr_payment_code}}"}</code>, <code>{"{{amount}}"}</code>, <code>{"{{club_account_nr}}"}</code>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>

@@ -9,6 +9,7 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
     const [templateLang, setTemplateLang] = useState('cz');
     const [draft, setDraft] = useState({ subject: '', body: '', to: '', cc: '' });
     const [settings, setSettings] = useState(null);
+    const [feeSettings, setFeeSettings] = useState([]);
     const [isSending, setIsSending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -24,11 +25,15 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
     const fetchSettingsAndPrepareDraft = async () => {
         setIsLoading(true);
         try {
-            const res = await axios.get('/api/settings', authHeader);
-            setSettings(res.data);
+            const [settingsRes, feeRes] = await Promise.all([
+                axios.get('/api/settings', authHeader),
+                axios.get('/api/fee-settings', authHeader),
+            ]);
+            setSettings(settingsRes.data);
+            setFeeSettings(feeRes.data);
             const initialLang = member.language === 'Czech' ? 'cz' : 'en';
             setTemplateLang(initialLang);
-            prepareDraft(res.data, initialLang);
+            prepareDraft(settingsRes.data, initialLang, feeRes.data);
         } catch (err) {
             console.error('Error preparation draft', err);
         } finally {
@@ -36,7 +41,7 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
         }
     };
 
-    const prepareDraft = (settingsData, lang) => {
+    const prepareDraft = (settingsData, lang, feeSettings = []) => {
         if (!settingsData || !member) return;
 
         const subjectTemplate = settingsData[`template_${lang}_subject`] || '';
@@ -44,12 +49,22 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
 
         const group = groups.find(g => String(g.id) === String(member.group_id)) || {};
 
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const currentFee = feeSettings
+            .filter(f => f.valid_from <= currentMonth && (f.valid_to === null || f.valid_to >= currentMonth))
+            .sort((a, b) => b.valid_from.localeCompare(a.valid_from))[0];
+        const amount = currentFee
+            ? (member.member_type === 'student' ? currentFee.student_amount : currentFee.regular_amount)
+            : 0;
+
         const placeholders = {
             first_name: member.name || '',
             surname: member.surname || '',
             group_id: member.group_id || 'N/A',
             group_trainer: group.trainer || 'N/A',
             id: String(member.id || ''),
+            amount: Number(amount).toLocaleString('cs-CZ') + '\u00a0Kč',
+            club_account_nr: settingsData.club_bank_account || '',
         };
 
         let subject = subjectTemplate;
@@ -72,7 +87,7 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
     const handleLangSwitch = (lang) => {
         setTemplateLang(lang);
         if (settings) {
-            prepareDraft(settings, lang);
+            prepareDraft(settings, lang, feeSettings);
         }
     };
 
