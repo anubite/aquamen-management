@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 class EmailService {
-    static async sendEmail({ to, cc, subject, html, fromName, fromEmail, replyTo, settings }) {
+    static async sendEmail({ to, cc, subject, html, fromName, fromEmail, replyTo, settings, attachments }) {
         // SMTP Configuration from settings or environment
         const port = parseInt(process.env.SMTP_PORT || settings.smtp_port || 587);
         const config = {
@@ -29,6 +29,7 @@ class EmailService {
             subject,
             html
         };
+        if (attachments && attachments.length > 0) mailOptions.attachments = attachments;
 
         try {
             const info = await transporter.sendMail(mailOptions);

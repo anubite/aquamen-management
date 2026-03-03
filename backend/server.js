@@ -444,6 +444,7 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
         }
 
         let qrWarning = null;
+        let qrAttachments = [];
         if (finalBody.includes('{{qr_payment_code}}')) {
             const { accountNumber, bankCode } = parseClubBankAccount(settingsMap.club_bank_account);
             let qrTag = '';
@@ -463,7 +464,13 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
                 const url = buildQrUrl({ accountNumber, bankCode, amount, memberId: member.id, memberName: `${member.name} ${member.surname}` });
                 const base64 = await fetchQrAsBase64(url);
                 if (base64) {
-                    qrTag = buildQrImageTag(base64);
+                    const qrCid = 'qr_payment';
+                    qrTag = buildQrImageTag(qrCid);
+                    qrAttachments = [{
+                        filename: 'qr-payment.png',
+                        content: Buffer.from(base64, 'base64'),
+                        cid: qrCid
+                    }];
                 } else {
                     qrWarning = `QR code generation failed. URL tried: ${url}`;
                     console.error('QR code generation failed. URL:', url);
@@ -480,7 +487,8 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
             fromName: settingsMap.email_from_name,
             fromEmail: settingsMap.email_from_address,
             replyTo: settingsMap.email_reply_to,
-            settings: settingsMap
+            settings: settingsMap,
+            attachments: qrAttachments
         });
 
         res.json({ message: 'Email sent successfully', ...(qrWarning ? { qrWarning } : {}) });

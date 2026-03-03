@@ -69,8 +69,8 @@ async function fetchQrAsBase64(url, fetchFn = fetch) {
  * @param {string} base64
  * @returns {string}
  */
-function buildQrImageTag(base64) {
-    return `<img src="data:image/png;base64,${base64}" alt="QR platba" style="display:block;max-width:200px;margin:8px 0;" />`;
+function buildQrImageTag(cid) {
+    return `<img src="cid:${cid}" alt="QR platba" style="display:block;max-width:200px;margin:8px 0;" />`;
 }
 
 module.exports = { parseClubBankAccount, buildQrUrl, fetchQrAsBase64, buildQrImageTag };
