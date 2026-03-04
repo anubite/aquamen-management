@@ -1,16 +1,16 @@
 :root {
-    --primary: #0077be;
-    --secondary: #00a8e8;
-    --background: #f8fafc;
-    --surface: #ffffff;
-    --text: #1e293b;
-    --text-muted: #64748b;
-    --border: #e2e8f0;
-    --accent: #38bdf8;
-    --success: #10b981;
-    --danger: #ef4444;
-    --radius: 8px;
-    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --primary:    #111111;
+    --secondary:  #444444;
+    --background: #f2f2f2;
+    --surface:    #ffffff;
+    --text:       #111111;
+    --text-muted: #6b6b6b;
+    --border:     #d4d4d4;
+    --accent:     rgb(206, 0, 55);
+    --success:    #2e7d32;
+    --danger:     rgb(206, 0, 55);
+    --radius:     8px;
+    --shadow:     0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 * {
@@ -35,10 +35,10 @@ body {
 
 /* Glassmorphism utility */
 .glass {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* Layout */
@@ -132,7 +132,7 @@ table {
 }
 
 th {
-    background: #f1f5f9;
+    background: #f5f5f5;
     text-align: left;
     padding: 0.75rem 1rem;
     font-size: 0.75rem;
@@ -149,7 +149,7 @@ td {
 }
 
 tr:hover {
-    background-color: #f8fafc;
+    background-color: #f5f5f5;
 }
 
 /* Badge */
@@ -423,7 +423,7 @@ section h3 {
 }
 
 .btn-icon:hover {
-    background: #f1f5f9;
+    background: #eeeeee;
     color: var(--text);
 }
 
@@ -447,7 +447,7 @@ section h3 {
 .upload-zone:hover,
 .upload-zone.dragging {
     border-color: var(--primary);
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .upload-label {
@@ -476,7 +476,7 @@ section h3 {
 }
 
 .history-item:hover {
-    background: #f8fafc;
+    background: #f5f5f5;
 }
 
 .log-container {
@@ -711,15 +711,15 @@ section h3 {
 }
 
 .bg-blue-50 {
-    background: #eff6ff;
+    background: #f5f5f5;
 }
 
 .border-blue-100 {
-    border-color: #dbeafe;
+    border-color: #e0e0e0;
 }
 
 .text-blue-700 {
-    color: #1d4ed8;
+    color: #111111;
 }
 
 .bg-amber-50 {
@@ -935,7 +935,7 @@ section h3 {
 
 .expandable-row-content {
     padding: 1rem 1.25rem;
-    background: #f8fafc;
+    background: #f5f5f5;
     border-top: 1px solid var(--border);
 }
 
@@ -1011,7 +1011,7 @@ section h3 {
 }
 
 .overview-table tbody tr:last-child td { border-bottom: none; }
-.overview-table tbody tr:hover td { background-color: rgba(0,119,190,0.04) !important; }
+.overview-table tbody tr:hover td { background-color: rgba(0,0,0,0.03) !important; }
 
 /* Sticky left (member name) */
 .overview-sticky-left {

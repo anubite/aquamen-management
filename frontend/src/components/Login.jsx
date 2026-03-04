@@ -27,39 +27,40 @@ function Login({ setToken }) {
             justifyContent: 'center',
             alignItems: 'center',
             minHeight: '100vh',
-            background: 'linear-gradient(135deg, #0077be 0%, #00a8e8 100%)'
+            background: 'rgb(206,0,55)'
         }}>
-            <div className="glass" style={{
+            <div style={{
                 padding: '2.5rem',
                 borderRadius: '20px',
                 width: '100%',
                 maxWidth: '400px',
-                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                background: 'rgba(255,255,255,0.96)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
             }}>
-                <h1 style={{ textAlign: 'center', color: '#fff', marginBottom: '2rem' }}>Aquamen</h1>
+                <img src="/logo.png" alt="Aquamen Prague" style={{ height: '48px', display: 'block', margin: '0 auto 2rem' }} />
                 {error && <div style={{ color: '#fff', background: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label style={{ color: '#fff' }}>Username</label>
+                        <label style={{ color: 'var(--text)' }}>Username</label>
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            placeholder="aquamen"
+                            autoComplete="off"
                             required
                         />
                     </div>
                     <div className="form-group" style={{ marginBottom: '2rem' }}>
-                        <label style={{ color: '#fff' }}>Password</label>
+                        <label style={{ color: 'var(--text)' }}>Password</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
+                            autoComplete="off"
                             required
                         />
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%', background: '#fff', color: 'var(--primary)', fontWeight: '700' }}>
+                    <button type="submit" className="btn" style={{ width: '100%', background: '#111111', color: '#ffffff', fontWeight: '700' }}>
                         Sign In
                     </button>
                 </form>

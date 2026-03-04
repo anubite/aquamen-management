@@ -77,7 +77,7 @@ const Navigation = ({ token, setToken }) => {
     return (
         <header className="navbar glass">
             <div className="nav-brand">
-                <h1 style={{ margin: 0, color: 'var(--primary)' }}>Aquamen</h1>
+                <img src="/logo.png" alt="Aquamen Prague" style={{ height: '36px', display: 'block' }} />
                 <nav className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
                     <Link to="/members" onClick={closeMenu} className={`btn ${location.pathname === '/members' ? 'btn-primary' : ''}`} style={navBtn('/members')}>
                         <Users size={18} /> Members
@@ -133,13 +133,13 @@ const Navigation = ({ token, setToken }) => {
                         </Link>
                     </div>
 
-                    <button className="btn logout-btn-mobile" onClick={handleLogout} style={{ background: '#fee2e2', color: 'var(--danger)', display: 'none' }}>
+                    <button className="btn logout-btn-mobile" onClick={handleLogout} style={{ background: '#f5f5f5', color: 'var(--danger)', display: 'none' }}>
                         <LogOut size={18} /> Logout
                     </button>
                 </nav>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <button className="btn logout-btn" onClick={handleLogout} style={{ background: '#fee2e2', color: 'var(--danger)' }}>
+                <button className="btn logout-btn" onClick={handleLogout} style={{ background: '#f5f5f5', color: 'var(--danger)' }}>
                     <LogOut size={18} /> Logout
                 </button>
                 <button className="nav-toggle" onClick={toggleMenu}>

@@ -340,7 +340,7 @@ function TransactionsDashboard({ token }) {
 
                 {/* Bulk action panel */}
                 {selectedIds.size > 0 && (
-                    <div style={{ padding: '1rem', background: '#eff6ff', border: '1px solid #bfdbfe',
+                    <div style={{ padding: '1rem', background: '#f5f5f5', border: '1px solid #e0e0e0',
                         borderRadius: 'var(--radius)', marginBottom: '1rem' }}>
 
                         {/* Header row */}
@@ -349,7 +349,7 @@ function TransactionsDashboard({ token }) {
                                 {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''} selected
                             </span>
                             <button className="btn" onClick={() => setSelectedIds(new Set())}
-                                style={{ background: '#dbeafe' }}>
+                                style={{ background: '#eeeeee' }}>
                                 Deselect all
                             </button>
                         </div>
@@ -390,7 +390,7 @@ function TransactionsDashboard({ token }) {
                                                     <div key={m.id}
                                                         onClick={() => { setBulkMemberId(String(m.id)); setBulkMemberSearch(`${m.name} ${m.surname}`); }}
                                                         style={{ padding: '0.4rem 0.75rem', cursor: 'pointer', fontSize: '0.875rem', borderBottom: '1px solid var(--border)' }}
-                                                        onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
+                                                        onMouseOver={e => e.currentTarget.style.background = '#eeeeee'}
                                                         onMouseOut={e => e.currentTarget.style.background = 'white'}>
                                                         <strong>{m.name} {m.surname}</strong>
                                                         <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>{m.email}</span>

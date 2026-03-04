@@ -153,20 +153,17 @@ const GDPRForm = () => {
     return (
         <div className="min-h-screen bg-slate-950 py-12 px-4">
             <div className="max-w-4xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 mb-32">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                        <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.5rem', letterSpacing: '-0.05em', lineHeight: '1.2' }}>Aquamen</div>
-                        <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-tight" style={{ margin: 0 }}>{t.title}</h1>
-                    </div>
+                <header className="navbar glass" style={{ marginBottom: '2rem' }}>
+                    <img src="/logo.png" alt="Aquamen Prague" style={{ height: '36px', display: 'block' }} />
                     <button
                         onClick={() => setLang(lang === 'English' ? 'Czech' : 'English')}
-                        className="glass flex items-center gap-2 hover:bg-slate-800 transition-all active:scale-95 border border-white/5"
-                        style={{ padding: '0.5rem 1.25rem', height: 'fit-content' }}
+                        className="btn"
+                        style={{ background: 'transparent', color: 'var(--text)' }}
                     >
-                        <Globe size={16} style={{ color: 'var(--primary)' }} />
-                        <span className="font-medium text-sm text-slate-200">{lang === 'English' ? 'Czech' : 'English'}</span>
+                        <Globe size={16} /> {lang === 'English' ? 'Czech' : 'English'}
                     </button>
-                </div>
+                </header>
+                <h1 style={{ color: 'var(--text)', marginBottom: '2rem', fontSize: '1.5rem', fontWeight: '700' }}>{t.title}</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Form Section */}
@@ -193,7 +190,6 @@ const GDPRForm = () => {
                                         required
                                         value={formData.street}
                                         onChange={e => setFormData({ ...formData, street: e.target.value })}
-                                        placeholder="Main St"
                                     />
                                 </div>
                                 <div className="form-group col-span-2 md:col-span-1">
@@ -202,7 +198,6 @@ const GDPRForm = () => {
                                         required
                                         value={formData.street_number}
                                         onChange={e => setFormData({ ...formData, street_number: e.target.value })}
-                                        placeholder="123"
                                     />
                                 </div>
                             </div>
@@ -214,7 +209,6 @@ const GDPRForm = () => {
                                         required
                                         value={formData.city}
                                         onChange={e => setFormData({ ...formData, city: e.target.value })}
-                                        placeholder="Prague"
                                     />
                                 </div>
                                 <div className="form-group col-span-2 md:col-span-1">
@@ -223,7 +217,6 @@ const GDPRForm = () => {
                                         required
                                         value={formData.zip_code}
                                         onChange={e => setFormData({ ...formData, zip_code: e.target.value })}
-                                        placeholder="120 00"
                                     />
                                 </div>
                             </div>
