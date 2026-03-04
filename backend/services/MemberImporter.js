@@ -99,7 +99,8 @@ class MemberImporter extends ExcelProcessor {
             street_number: addressData.street_number,
             zip_code: addressData.zip_code,
             city: addressData.city,
-            date_of_birth: dateOfBirth
+            date_of_birth: dateOfBirth,
+            gdpr_consent: String(row['Form signed'] || '').trim().toUpperCase() === 'YES',
         };
 
         try {
