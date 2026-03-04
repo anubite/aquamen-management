@@ -855,6 +855,23 @@ app.put('/api/transactions/bulk-link-member', authenticate, async (req, res) => 
     }
 });
 
+app.delete('/api/transactions/by-months', authenticate, async (req, res) => {
+    const { months } = req.body;
+    if (!Array.isArray(months) || months.length === 0)
+        return res.status(400).json({ error: 'months array required' });
+    if (months.some(m => !/^\d{4}-\d{2}$/.test(m)))
+        return res.status(400).json({ error: 'Invalid month format' });
+    try {
+        const count = await db('transactions')
+            .whereIn(db.raw('SUBSTR(transaction_date, 1, 7)'), months)
+            .delete();
+        const updated = await recalculateMembers(db);
+        res.json({ message: `Deleted ${count} transaction(s) across ${months.length} month(s)`, count, updated });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.put('/api/transactions/:id/categorize', authenticate, async (req, res) => {
     const { category_id } = req.body;
     try {

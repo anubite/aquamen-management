@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
-    Search, FileUp, ChevronLeft, ChevronRight, Eye,
-    TrendingUp, TrendingDown, Minus, Wand2, Link2, X
+    Search, FileUp, ChevronLeft, ChevronRight, ChevronDown, Eye,
+    TrendingUp, TrendingDown, Minus, Wand2, Link2, X, Trash2
 } from 'lucide-react';
 import TransactionImport from './TransactionImport';
 import TransactionDetailPanel from './TransactionDetailPanel';
@@ -38,6 +38,11 @@ function TransactionsDashboard({ token }) {
     const [isImportOpen, setIsImportOpen] = useState(false);
 
     const [showClearCategoriesConfirm, setShowClearCategoriesConfirm] = useState(false);
+    const [showDeleteByMonthModal, setShowDeleteByMonthModal]         = useState(false);
+    const [deleteSelectedMonths, setDeleteSelectedMonths]             = useState(new Set());
+    const [showDeleteByMonthConfirm, setShowDeleteByMonthConfirm]     = useState(false);
+    const [deleteMonthDropdownOpen, setDeleteMonthDropdownOpen]       = useState(false);
+    const deleteMonthDropdownRef = useRef(null);
 
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [bulkCategoryId, setBulkCategoryId] = useState('');
@@ -102,6 +107,15 @@ function TransactionsDashboard({ token }) {
 
     useEffect(() => { fetchMeta(); }, [token]);
 
+    useEffect(() => {
+        const handler = (e) => {
+            if (deleteMonthDropdownRef.current && !deleteMonthDropdownRef.current.contains(e.target))
+                setDeleteMonthDropdownOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
     const handleAutoCategories = async () => {
         try {
             const res = await axios.post(`${API_URL}/transactions/auto-categorize`, {}, authHeader);
@@ -119,6 +133,24 @@ function TransactionsDashboard({ token }) {
             setNotification({ message: `Linked ${res.data.linked} transaction(s) to members`, type: 'success' });
         } catch (err) {
             setNotification({ message: 'Error: ' + (err.response?.data?.error || err.message), type: 'error' });
+        }
+    };
+
+    const handleDeleteByMonth = async () => {
+        try {
+            const monthsArr = [...deleteSelectedMonths];
+            const res = await axios.delete(`${API_URL}/transactions/by-months`,
+                { ...authHeader, data: { months: monthsArr } });
+            setShowDeleteByMonthConfirm(false);
+            setShowDeleteByMonthModal(false);
+            setDeleteSelectedMonths(new Set());
+            fetchTransactions(1);
+            setPage(1);
+            fetchMeta();
+            setNotification({ message: res.data.message, type: 'success' });
+        } catch (err) {
+            setNotification({ message: 'Error: ' + (err.response?.data?.error || err.message), type: 'error' });
+            setShowDeleteByMonthConfirm(false);
         }
     };
 
@@ -241,6 +273,11 @@ function TransactionsDashboard({ token }) {
                             <button className="btn" style={{ background: '#fee2e2', color: 'var(--danger)' }}
                                 onClick={() => setShowClearCategoriesConfirm(true)} title="Remove category from all transactions">
                                 <X size={16} /> Clear Categories
+                            </button>
+                            <button className="btn" style={{ background: '#fee2e2', color: 'var(--danger)' }}
+                                onClick={() => { setDeleteSelectedMonths(new Set()); setShowDeleteByMonthModal(true); }}
+                                title="Delete all transactions for selected months">
+                                <Trash2 size={16} /> Delete Transactions
                             </button>
                             <button className="btn btn-primary" onClick={() => setIsImportOpen(true)}>
                                 <FileUp size={16} /> Import
@@ -474,6 +511,79 @@ function TransactionsDashboard({ token }) {
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                             <button className="btn" onClick={() => setShowClearCategoriesConfirm(false)} style={{ background: '#e2e8f0' }}>Cancel</button>
                             <button className="btn" onClick={handleClearCategories} style={{ background: 'var(--danger)', color: 'white' }}>Remove All</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete by month — month picker modal */}
+            {showDeleteByMonthModal && (
+                <div className="modal-overlay" onClick={() => setShowDeleteByMonthModal(false)}>
+                    <div className="glass" style={{ padding: '2rem', borderRadius: '20px', maxWidth: '420px', width: '90%' }}
+                        onClick={e => e.stopPropagation()}>
+                        <h3 style={{ marginTop: 0 }}>Delete Transactions by Month</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            Select one or more months to permanently delete all their transactions.
+                        </p>
+                        <div ref={deleteMonthDropdownRef} style={{ position: 'relative', marginBottom: '1.25rem' }}>
+                            <button type="button" className="btn"
+                                style={{ width: '100%', justifyContent: 'space-between', background: '#f1f5f9' }}
+                                onClick={() => setDeleteMonthDropdownOpen(v => !v)}>
+                                <span>{deleteSelectedMonths.size === 0 ? 'Select months…' : `${deleteSelectedMonths.size} month${deleteSelectedMonths.size > 1 ? 's' : ''} selected`}</span>
+                                <ChevronDown size={14} />
+                            </button>
+                            {deleteMonthDropdownOpen && (
+                                <div className="nav-dropdown-menu glass"
+                                    style={{ left: 0, right: 0, minWidth: 'unset', maxHeight: 240, overflowY: 'auto', padding: '0.5rem' }}>
+                                    {months.map(m => {
+                                        const checked = deleteSelectedMonths.has(m);
+                                        return (
+                                            <label key={m} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.25rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                                                <input type="checkbox" checked={checked} style={{ width: 'auto', margin: 0 }}
+                                                    onChange={() => {
+                                                        const next = new Set(deleteSelectedMonths);
+                                                        checked ? next.delete(m) : next.add(m);
+                                                        setDeleteSelectedMonths(next);
+                                                    }} />
+                                                {formatMonth(m)}
+                                            </label>
+                                        );
+                                    })}
+                                    {months.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.5rem' }}>No transaction months found.</div>}
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="btn" onClick={() => setShowDeleteByMonthModal(false)} style={{ background: '#e2e8f0' }}>Cancel</button>
+                            <button className="btn" disabled={deleteSelectedMonths.size === 0}
+                                onClick={() => setShowDeleteByMonthConfirm(true)}
+                                style={{ background: 'var(--danger)', color: 'white', opacity: deleteSelectedMonths.size === 0 ? 0.5 : 1 }}>
+                                Delete {deleteSelectedMonths.size > 0 ? `${deleteSelectedMonths.size} month${deleteSelectedMonths.size > 1 ? 's' : ''}` : ''}…
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete by month — confirmation modal */}
+            {showDeleteByMonthConfirm && (
+                <div className="modal-overlay" onClick={() => setShowDeleteByMonthConfirm(false)}>
+                    <div className="glass" style={{ padding: '2rem', borderRadius: '20px', maxWidth: '400px', width: '90%' }}
+                        onClick={e => e.stopPropagation()}>
+                        <h3 style={{ marginTop: 0, color: 'var(--danger)' }}>Confirm Deletion</h3>
+                        <p style={{ color: 'var(--text-muted)' }}>
+                            All transactions from the following month{deleteSelectedMonths.size > 1 ? 's' : ''} will be <strong>permanently deleted</strong> and fees will be recalculated:
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
+                            {[...deleteSelectedMonths].sort().map(m => (
+                                <span key={m} style={{ background: '#fee2e2', color: 'var(--danger)', borderRadius: 'var(--radius)', padding: '2px 10px', fontSize: '0.875rem', fontWeight: 600 }}>{m}</span>
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="btn" onClick={() => setShowDeleteByMonthConfirm(false)} style={{ background: '#e2e8f0' }}>Cancel</button>
+                            <button className="btn" onClick={handleDeleteByMonth} style={{ background: 'var(--danger)', color: 'white' }}>
+                                <Trash2 size={15} /> Delete Permanently
+                            </button>
                         </div>
                     </div>
                 </div>
