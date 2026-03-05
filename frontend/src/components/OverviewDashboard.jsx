@@ -187,16 +187,16 @@ function MobileCard({ member, months, onOverride, onEmailReminder }) {
                         </tbody>
                     </table>
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                        <button className="btn" onClick={() => onOverride(member)}
-                            style={{ flex: 1, background: '#f1f5f9', fontSize: '0.875rem' }}>
-                            <Edit2 size={14} /> Edit Override
-                        </button>
                         {member.fees_due?.outstanding > 0 && (
                             <button className="btn" onClick={() => onEmailReminder(member)}
                                 style={{ flex: 1, background: '#fef2f2', fontSize: '0.875rem', color: '#dc2626' }}>
                                 <Mail size={14} /> Send Reminder
                             </button>
                         )}
+                        <button className="btn" onClick={() => onOverride(member)}
+                            style={{ flex: 1, background: '#f1f5f9', fontSize: '0.875rem' }}>
+                            <Edit2 size={14} /> Edit Override
+                        </button>
                     </div>
                 </div>
             )}
@@ -464,11 +464,6 @@ export default function OverviewDashboard({ token }) {
                                                             <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: 1 }}>override</div>
                                                         )}
                                                     </div>
-                                                    <button className="btn" onClick={() => setOverrideMember(member)}
-                                                        style={{ padding: '0.2rem 0.4rem', background: '#f1f5f9', flexShrink: 0 }}
-                                                        title="Edit fees override">
-                                                        <Edit2 size={13} />
-                                                    </button>
                                                     {member.fees_due?.outstanding > 0 && (
                                                         <button className="btn" onClick={() => setEmailMember(member)}
                                                             style={{ padding: '0.2rem 0.4rem', background: '#fef2f2', flexShrink: 0 }}
@@ -476,6 +471,11 @@ export default function OverviewDashboard({ token }) {
                                                             <Mail size={13} color="#dc2626" />
                                                         </button>
                                                     )}
+                                                    <button className="btn" onClick={() => setOverrideMember(member)}
+                                                        style={{ padding: '0.2rem 0.4rem', background: '#f1f5f9', flexShrink: 0 }}
+                                                        title="Edit fees override">
+                                                        <Edit2 size={13} />
+                                                    </button>
                                                 </div>
                                             ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
