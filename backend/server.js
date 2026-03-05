@@ -1155,7 +1155,14 @@ app.put('/api/overview/members/:id/fees-override', authenticate, async (req, res
         const member = await db('members').where({ id: req.params.id }).first();
         if (!member) return res.status(404).json({ error: 'Member not found' });
 
-        const override_at = new Date().toISOString();
+        const lastTxRow = await db('transactions').max('transaction_date as maxDate').first();
+        let override_at;
+        if (lastTxRow?.maxDate) {
+            const [y, m] = lastTxRow.maxDate.slice(0, 7).split('-').map(Number);
+            override_at = new Date(y, m, 0).toISOString().slice(0, 10); // YYYY-MM-DD, last day of that month
+        } else {
+            override_at = new Date().toISOString().slice(0, 10);
+        }
         const existing = await db('member_fees_due').where({ member_id: req.params.id }).first();
         if (existing) {
             await db('member_fees_due').where({ member_id: req.params.id }).update({

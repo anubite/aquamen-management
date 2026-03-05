@@ -94,12 +94,19 @@ function getMemberStatusForMonth(auditLog, currentStatus, month) {
         .filter(e => e.field === 'status')
         .sort((a, b) => new Date(a.changed_at) - new Date(b.changed_at));
 
-    // Status at the very start of the month = last change recorded BEFORE month start
-    let statusAtStart = currentStatus; // default: use member's current status
-    for (const e of entries) {
-        if (toDateStr(e.changed_at) < monthStartStr) {
-            statusAtStart = e.new_value;
-        }
+    // Status at the very start of the month
+    const beforeMonth = entries.filter(e => toDateStr(e.changed_at) < monthStartStr);
+    let statusAtStart;
+    if (beforeMonth.length > 0) {
+        // Use the most recent entry that predates this month
+        statusAtStart = beforeMonth[beforeMonth.length - 1].new_value;
+    } else if (entries.length > 0) {
+        // No entries before this month but there are future ones:
+        // the first entry's old_value is what the status was before any change
+        statusAtStart = entries[0].old_value;
+    } else {
+        // No audit log at all → spec: "assume current status was there forever"
+        statusAtStart = currentStatus;
     }
 
     // Changes that fall WITHIN the month
@@ -280,26 +287,30 @@ function calculateMemberFees(member, auditLog, feeSettings, membershipTransactio
     // ── Outstanding (with optional override) ──────────────────────
     let outstanding;
     if (override && override.override_amount != null) {
-        const overrideDateStr = toDateStr(override.override_at);
-        const paymentsAfter  = membershipTransactions
+        const overrideDateStr   = toDateStr(override.override_at);
+        const overrideMonth     = overrideDateStr.slice(0, 7); // YYYY-MM
+        const paymentsAfter     = membershipTransactions
             .filter(t => t.transaction_date > overrideDateStr)
             .reduce((s, t) => s + t.amount, 0);
-        outstanding = override.override_amount - paymentsAfter;
+        const feesAfterOverride = months
+            .filter(m => m > overrideMonth)
+            .reduce((s, m) => s + (obligations[m] || 0), 0);
+        outstanding = override.override_amount + feesAfterOverride - paymentsAfter;
     } else {
         outstanding = totalCalculatedDue - totalPaid;
     }
 
     // ── Unpaid months: calendar months whose deficit explains outstanding ──
-    // Take oldest calendar-deficit months until their cumulative deficit
-    // reaches the outstanding balance. This keeps the list aligned with
-    // both the pivot table (per-calendar-month) and the outstanding total.
+    // Iterate newest-first so that recent unpaid months are tagged rather than
+    // ambiguous old ones (e.g. member paid a lump sum in Dec covering Jan–Nov).
     let deficitAcc = 0;
     const unpaidMonths = [];
-    for (const { month, deficit } of calendarDeficits) {
+    for (const { month, deficit } of [...calendarDeficits].reverse()) {
         if (outstanding <= 0 || deficitAcc >= outstanding) break;
         unpaidMonths.push(month);
         deficitAcc += deficit;
     }
+    unpaidMonths.reverse(); // restore chronological order for display
 
     return { totalCalculatedDue, totalPaid, outstanding, unpaidMonths, monthData };
 }

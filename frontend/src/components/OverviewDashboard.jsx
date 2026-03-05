@@ -57,10 +57,17 @@ function OverrideModal({ member, onSave, onClear, onClose }) {
 
                 {member.fees_due?.override_amount != null && (
                     <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#fef9c3', borderRadius: 'var(--radius)', fontSize: '0.875rem', color: '#854d0e' }}>
-                        Active override: <strong>{fmtCurrency(member.fees_due.override_amount)}</strong>
-                        {member.fees_due.override_note && <> — {member.fees_due.override_note}</>}
+                        <div>
+                            Active override: <strong>{fmtCurrency(member.fees_due.override_amount)}</strong>
+                            {member.fees_due.override_note && <> — {member.fees_due.override_note}</>}
+                        </div>
+                        {member.fees_due.override_at && (
+                            <div style={{ marginTop: '3px', fontSize: '0.8rem', opacity: 0.8 }}>
+                                Set as of: <strong>{fmtMonth(member.fees_due.override_at.slice(0, 7))}</strong>
+                            </div>
+                        )}
                         <button className="btn" onClick={() => onClear(member.id)}
-                            style={{ marginLeft: '0.75rem', padding: '0.1rem 0.5rem', fontSize: '0.75rem', background: '#fee2e2', color: 'var(--danger)' }}>
+                            style={{ marginTop: '0.5rem', padding: '0.1rem 0.5rem', fontSize: '0.75rem', background: '#fee2e2', color: 'var(--danger)' }}>
                             Clear
                         </button>
                     </div>
@@ -92,7 +99,11 @@ function OverrideModal({ member, onSave, onClear, onClose }) {
                         placeholder="e.g. Agreed payment plan" />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: '1rem' }}>
+                    New override will be anchored to the last transaction month.
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0' }}>
                     <button className="btn" onClick={onClose} style={{ background: '#e2e8f0' }}>Cancel</button>
                     <button className="btn btn-primary" onClick={() => onSave(member.id, form)} disabled={!canSave}>
                         <Check size={16} /> Save Override
