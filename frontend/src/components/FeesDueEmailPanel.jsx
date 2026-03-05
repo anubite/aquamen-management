@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Mail, Send, Loader2, Globe, AlertCircle } from 'lucide-react';
+import { X, Mail, Send, Loader2, AlertCircle } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useNotification } from '../context/NotificationContext';
 
-function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
+function FeesDueEmailPanel({ member, isOpen, onClose, token }) {
     const [templateLang, setTemplateLang] = useState('cz');
     const [draft, setDraft] = useState({ subject: '', body: '', to: '', cc: '' });
     const [settings, setSettings] = useState(null);
-    const [feeSettings, setFeeSettings] = useState([]);
     const [isSending, setIsSending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -25,45 +24,34 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
     const fetchSettingsAndPrepareDraft = async () => {
         setIsLoading(true);
         try {
-            const [settingsRes, feeRes] = await Promise.all([
-                axios.get('/api/settings', authHeader),
-                axios.get('/api/fee-settings', authHeader),
-            ]);
+            const settingsRes = await axios.get('/api/settings', authHeader);
             setSettings(settingsRes.data);
-            setFeeSettings(feeRes.data);
             const initialLang = member.language === 'Czech' ? 'cz' : 'en';
             setTemplateLang(initialLang);
-            prepareDraft(settingsRes.data, initialLang, feeRes.data);
+            prepareDraft(settingsRes.data, initialLang);
         } catch (err) {
-            console.error('Error preparation draft', err);
+            console.error('Error preparing fees-due draft', err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const prepareDraft = (settingsData, lang, feeSettings = []) => {
+    const prepareDraft = (settingsData, lang) => {
         if (!settingsData || !member) return;
 
-        const subjectTemplate = settingsData[`template_${lang}_subject`] || '';
-        const bodyTemplate = settingsData[`template_${lang}_body`] || '';
+        const subjectTemplate = settingsData[`fees_template_${lang}_subject`] || '';
+        const bodyTemplate = settingsData[`fees_template_${lang}_body`] || '';
 
-        const group = groups.find(g => String(g.id) === String(member.group_id)) || {};
-
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const currentFee = feeSettings
-            .filter(f => f.valid_from <= currentMonth && (f.valid_to === null || f.valid_to >= currentMonth))
-            .sort((a, b) => b.valid_from.localeCompare(a.valid_from))[0];
-        const amount = currentFee
-            ? (member.member_type === 'student' ? currentFee.student_amount : currentFee.regular_amount)
-            : 0;
+        const unpaidMonths = (member.fees_due?.unpaid_months || [])
+            .map(m => { const [y, mo] = m.split('-'); return `${Number(mo)}/${y}`; })
+            .join(', ');
 
         const placeholders = {
-            first_name: member.name || '',
-            surname: member.surname || '',
-            group_id: member.group_id || 'N/A',
-            group_trainer: group.trainer || 'N/A',
-            id: String(member.id || ''),
-            amount: Number(amount).toLocaleString('cs-CZ') + '\u00a0Kč',
+            first_name:      member.name || '',
+            surname:         member.surname || '',
+            id:              String(member.id || ''),
+            fees_due:        Number(member.fees_due?.outstanding || 0).toLocaleString('cs-CZ') + '\u00a0Kč',
+            unpaid_months:   unpaidMonths,
             club_account_nr: settingsData.club_bank_account || '',
         };
 
@@ -80,30 +68,28 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
             subject,
             body,
             to: member.email,
-            cc: settingsData.email_cc || ''
+            cc: settingsData.email_cc || '',
         });
     };
 
     const handleLangSwitch = (lang) => {
         setTemplateLang(lang);
-        if (settings) {
-            prepareDraft(settings, lang, feeSettings);
-        }
+        if (settings) prepareDraft(settings, lang);
     };
 
     const handleSend = async (e) => {
         e.preventDefault();
         setIsSending(true);
         try {
-            const result = await axios.post(`/api/members/${member.id}/send-welcome`, draft, authHeader);
+            const result = await axios.post(`/api/members/${member.id}/send-fees-due`, draft, authHeader);
             if (result.data.qrWarning) {
-                setNotification({ message: `Email sent, but: ${result.data.qrWarning}`, type: 'error' });
+                setNotification({ message: `Reminder sent, but: ${result.data.qrWarning}`, type: 'error' });
             } else {
-                setNotification({ message: 'Welcome email sent successfully!', type: 'success' });
+                setNotification({ message: 'Fees due reminder sent successfully!', type: 'success' });
             }
             onClose();
         } catch (err) {
-            setNotification({ message: 'Failed to send email: ' + (err.response?.data?.error || err.message), type: 'error' });
+            setNotification({ message: 'Failed to send reminder: ' + (err.response?.data?.error || err.message), type: 'error' });
         } finally {
             setIsSending(false);
         }
@@ -116,8 +102,8 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
             <div className="side-panel glass" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
                 <div className="side-panel-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Mail color="var(--primary)" />
-                        <h2 style={{ margin: 0 }}>Welcome Email Draft</h2>
+                        <Mail color="var(--danger)" />
+                        <h2 style={{ margin: 0 }}>Fees Due Reminder</h2>
                     </div>
                     <button className="btn-icon" onClick={onClose}><X /></button>
                 </div>
@@ -179,8 +165,8 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
                             </div>
 
                             <div className="side-panel-footer">
-                                <button type="submit" className="btn btn-primary w-full" disabled={isSending}>
-                                    {isSending ? <><Loader2 className="animate-spin" /> Sending...</> : <><Send size={18} /> Send Welcome Email</>}
+                                <button type="submit" className="btn w-full" style={{ background: 'var(--danger)', color: '#fff' }} disabled={isSending}>
+                                    {isSending ? <><Loader2 className="animate-spin" /> Sending...</> : <><Send size={18} /> Send Reminder</>}
                                 </button>
                             </div>
                         </form>
@@ -191,4 +177,4 @@ function EmailDraftPanel({ member, isOpen, onClose, token, groups }) {
     );
 }
 
-export default EmailDraftPanel;
+export default FeesDueEmailPanel;

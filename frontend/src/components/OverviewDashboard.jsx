@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { RefreshCw, Search, Edit2, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, Search, Edit2, Mail, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
+import FeesDueEmailPanel from './FeesDueEmailPanel';
 
 const API_URL = '/api';
 
@@ -116,7 +117,7 @@ function OverrideModal({ member, onSave, onClear, onClose }) {
 
 // ─── Mobile member card ──────────────────────────────────────────────────────
 
-function MobileCard({ member, months, onOverride }) {
+function MobileCard({ member, months, onOverride, onEmailReminder }) {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -185,10 +186,18 @@ function MobileCard({ member, months, onOverride }) {
                             })}
                         </tbody>
                     </table>
-                    <button className="btn" onClick={() => onOverride(member)}
-                        style={{ marginTop: '0.75rem', width: '100%', background: '#f1f5f9', fontSize: '0.875rem' }}>
-                        <Edit2 size={14} /> Edit Fees Override
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                        <button className="btn" onClick={() => onOverride(member)}
+                            style={{ flex: 1, background: '#f1f5f9', fontSize: '0.875rem' }}>
+                            <Edit2 size={14} /> Edit Override
+                        </button>
+                        {member.fees_due?.outstanding > 0 && (
+                            <button className="btn" onClick={() => onEmailReminder(member)}
+                                style={{ flex: 1, background: '#fef2f2', fontSize: '0.875rem', color: '#dc2626' }}>
+                                <Mail size={14} /> Send Reminder
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
@@ -204,6 +213,7 @@ export default function OverviewDashboard({ token }) {
     const [loading, setLoading] = useState(false);
     const [recalculating, setRecalculating] = useState(false);
     const [overrideMember, setOverrideMember] = useState(null);
+    const [emailMember, setEmailMember] = useState(null);
     const [statusFilter, setStatusFilter] = useState('active');
     const [availableMonths, setAvailableMonths] = useState([]);
     const [selectedMonths, setSelectedMonths] = useState([]);
@@ -459,6 +469,13 @@ export default function OverviewDashboard({ token }) {
                                                         title="Edit fees override">
                                                         <Edit2 size={13} />
                                                     </button>
+                                                    {member.fees_due?.outstanding > 0 && (
+                                                        <button className="btn" onClick={() => setEmailMember(member)}
+                                                            style={{ padding: '0.2rem 0.4rem', background: '#fef2f2', flexShrink: 0 }}
+                                                            title="Send fees due reminder">
+                                                            <Mail size={13} color="#dc2626" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
@@ -482,7 +499,7 @@ export default function OverviewDashboard({ token }) {
                     <div className="overview-mobile-cards">
                         {filtered.map(member => (
                             <MobileCard key={member.id} member={member} months={data.months}
-                                onOverride={setOverrideMember} />
+                                onOverride={setOverrideMember} onEmailReminder={setEmailMember} />
                         ))}
                         {filtered.length === 0 && (
                             <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic', padding: '2rem' }}>
@@ -515,6 +532,16 @@ export default function OverviewDashboard({ token }) {
                     onSave={saveOverride}
                     onClear={clearOverride}
                     onClose={() => setOverrideMember(null)}
+                />
+            )}
+
+            {/* Fees due reminder panel */}
+            {emailMember && (
+                <FeesDueEmailPanel
+                    member={emailMember}
+                    isOpen={!!emailMember}
+                    onClose={() => setEmailMember(null)}
+                    token={token}
                 />
             )}
         </div>

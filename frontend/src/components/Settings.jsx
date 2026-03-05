@@ -111,8 +111,8 @@ function Settings({ token }) {
                             <input type="email" value={settings.email_from_address || ''} onChange={e => updateSetting('email_from_address', e.target.value)} />
                         </div>
                         <div className="form-group">
-                            <label>Reply-To Address</label>
-                            <input type="email" value={settings.email_reply_to || ''} onChange={e => updateSetting('email_reply_to', e.target.value)} />
+                            <label>Reply-To Address (comma-separated for multiple)</label>
+                            <input value={settings.email_reply_to || ''} onChange={e => updateSetting('email_reply_to', e.target.value)} placeholder="admin@club.cz, board@club.cz" />
                         </div>
                     </div>
                     <div className="form-group">
@@ -197,8 +197,47 @@ function Settings({ token }) {
                 </div>
 
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700">
-                    <strong>Placeholders:</strong> You can use the following placeholders in subjects and bodies:
-                    <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>, <code>{"{{id}}"}</code>, <code>{"{{qr_payment_code}}"}</code>, <code>{"{{amount}}"}</code>, <code>{"{{club_account_nr}}"}</code>
+                    <strong>Welcome email placeholders:</strong> <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{group_id}}"}</code>, <code>{"{{group_trainer}}"}</code>, <code>{"{{gdpr_link}}"}</code>, <code>{"{{id}}"}</code>, <code>{"{{qr_payment_code}}"}</code>, <code>{"{{amount}}"}</code>, <code>{"{{club_account_nr}}"}</code>
+                </div>
+
+                <div className="grid grid-cols-2 gap-10" style={{ marginTop: '2rem' }}>
+                    <section>
+                        <h3 className="flex items-center gap-2 border-b pb-2 mb-6"><Globe size={20} /> Fees Due Template (CZ)</h3>
+                        <div className="form-group">
+                            <label>Subject (CZ)</label>
+                            <input value={settings.fees_template_cz_subject || ''} onChange={e => updateSetting('fees_template_cz_subject', e.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label>Email Body (CZ)</label>
+                            <ReactQuill
+                                theme="snow"
+                                value={settings.fees_template_cz_body || ''}
+                                onChange={val => updateSetting('fees_template_cz_body', val)}
+                                className="bg-white rounded"
+                            />
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="flex items-center gap-2 border-b pb-2 mb-6"><Globe size={20} /> Fees Due Template (EN)</h3>
+                        <div className="form-group">
+                            <label>Subject (EN)</label>
+                            <input value={settings.fees_template_en_subject || ''} onChange={e => updateSetting('fees_template_en_subject', e.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label>Email Body (EN)</label>
+                            <ReactQuill
+                                theme="snow"
+                                value={settings.fees_template_en_body || ''}
+                                onChange={val => updateSetting('fees_template_en_body', val)}
+                                className="bg-white rounded"
+                            />
+                        </div>
+                    </section>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700">
+                    <strong>Fees due reminder placeholders:</strong> <code>{"{{first_name}}"}</code>, <code>{"{{surname}}"}</code>, <code>{"{{id}}"}</code>, <code>{"{{fees_due}}"}</code>, <code>{"{{unpaid_months}}"}</code>, <code>{"{{club_account_nr}}"}</code>, <code>{"{{qr_payment_code}}"}</code>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>

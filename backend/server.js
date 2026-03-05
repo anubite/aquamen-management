@@ -497,6 +497,73 @@ app.post('/api/members/:id/send-welcome', authenticate, emailSendLimiter, async 
     }
 });
 
+// --- Fees Due Reminder Email ---
+
+app.post('/api/members/:id/send-fees-due', authenticate, emailSendLimiter, async (req, res) => {
+    const { id } = req.params;
+    const { subject, body, to, cc } = req.body;
+    try {
+        const settings = await db('settings').select('*');
+        const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+
+        const [member, fd] = await Promise.all([
+            db('members').where({ id }).first(),
+            db('member_fees_due').where('member_id', id).first(),
+        ]);
+
+        if (!fd || fd.outstanding <= 0) {
+            return res.status(400).json({ error: 'No positive fees due for this member.' });
+        }
+
+        let finalBody = body;
+        let qrWarning = null;
+        let qrAttachments = [];
+
+        if (finalBody.includes('{{qr_payment_code}}')) {
+            const { accountNumber, bankCode } = parseClubBankAccount(settingsMap.club_bank_account);
+            let qrTag = '';
+            if (!accountNumber || !bankCode) {
+                qrWarning = 'QR code skipped: club_bank_account not configured in Settings.';
+            } else {
+                const unpaidMonths = JSON.parse(fd.unpaid_months || '[]');
+                const formattedMonths = unpaidMonths
+                    .map(m => { const [y, mo] = m.split('-'); return `${Number(mo)}/${y}`; })
+                    .join(', ');
+                const memberName = `${member.name} ${member.surname}`;
+                const message = formattedMonths ? `${memberName} - ${formattedMonths}` : memberName;
+                const url = buildQrUrl({ accountNumber, bankCode, amount: fd.outstanding, memberId: member.id, memberName: message });
+                const base64 = await fetchQrAsBase64(url);
+                if (base64) {
+                    const qrCid = 'qr_payment';
+                    qrTag = buildQrImageTag(qrCid);
+                    qrAttachments = [{ filename: 'qr-payment.png', content: Buffer.from(base64, 'base64'), cid: qrCid }];
+                } else {
+                    qrWarning = `QR code generation failed. URL tried: ${url}`;
+                    console.error('QR code generation failed. URL:', url);
+                }
+            }
+            finalBody = finalBody.replace(/{{qr_payment_code}}/g, qrTag);
+        }
+
+        await EmailService.sendEmail({
+            to,
+            cc: cc || settingsMap.email_cc,
+            subject,
+            html: finalBody,
+            fromName: settingsMap.email_from_name,
+            fromEmail: settingsMap.email_from_address,
+            replyTo: settingsMap.email_reply_to,
+            settings: settingsMap,
+            attachments: qrAttachments,
+        });
+
+        res.json({ message: 'Reminder sent successfully', ...(qrWarning ? { qrWarning } : {}) });
+    } catch (err) {
+        console.error('send-fees-due error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Transaction Categories ---
 
 app.get('/api/transaction-categories', authenticate, async (req, res) => {
@@ -1029,7 +1096,7 @@ app.get('/api/overview/pivot', authenticate, async (req, res) => {
 
         // Fix 4: member status filter (default: active)
         const statusFilter = req.query.status || 'active';
-        let membersQuery = db('members').select('id', 'name', 'surname', 'member_type', 'status');
+        let membersQuery = db('members').select('id', 'name', 'surname', 'member_type', 'status', 'email', 'language');
         if (memberIdsParam) {
             const ids = memberIdsParam.split(',').map(s => parseInt(s)).filter(n => !isNaN(n));
             membersQuery = membersQuery.whereIn('id', ids);
@@ -1115,6 +1182,8 @@ app.get('/api/overview/pivot', authenticate, async (req, res) => {
                 surname: member.surname,
                 member_type: member.member_type,
                 status: member.status,
+                email: member.email,
+                language: member.language,
                 fees_due: fd ? {
                     outstanding:    fd.outstanding,
                     override_amount: fd.override_amount,
