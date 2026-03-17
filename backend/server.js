@@ -169,6 +169,13 @@ app.post('/api/members', authenticate, async (req, res) => {
 
         const [newId] = await db('members').insert(insertData);
         const finalId = id || newId;
+        await db('member_audit_log').insert({
+            member_id: finalId,
+            field: 'status',
+            old_value: 'Canceled',
+            new_value: insertData.status,
+            changed_at: new Date().toISOString()
+        });
         const newMember = await db('members').where({ id: finalId }).first();
         res.status(201).json(newMember);
     } catch (err) {
@@ -1156,12 +1163,10 @@ app.get('/api/overview/pivot', authenticate, async (req, res) => {
 
             const payments = {};
             for (const month of months) {
-                // Fix 2: skip months before the effective start
                 if (month < effectiveStart) {
                     payments[month] = { amount_paid: 0, amount_due: 0, is_active: false };
                     continue;
                 }
-                // Fix 3: pass member.status as default for getMemberStatusForMonth
                 const status = getMemberStatusForMonth(log, member.status, month);
                 let amountDue = 0;
                 if (status === 'Active') {

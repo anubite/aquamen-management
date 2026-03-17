@@ -242,7 +242,6 @@ function calculateMemberFees(member, auditLog, feeSettings, membershipTransactio
     // ── Per-month obligations ──────────────────────────────────────
     let totalCalculatedDue = 0;
     const obligations = {}; // YYYY-MM → amount_due (0 = not active)
-
     for (const month of months) {
         const status = getMemberStatusForMonth(auditLog, member.status, month);
         if (status === 'Canceled') {
