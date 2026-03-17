@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
-    Search, FileUp, ChevronLeft, ChevronRight, ChevronDown, Eye,
-    TrendingUp, TrendingDown, Minus, Wand2, Link2, X, Trash2
+    Search, FileUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye,
+    Wand2, Link2, X, Trash2, Wrench
 } from 'lucide-react';
 import TransactionImport from './TransactionImport';
 import TransactionDetailPanel from './TransactionDetailPanel';
+import FinancialSummary from './FinancialSummary';
+import MonthPicker from './MonthPicker';
 import { useNotification } from '../context/NotificationContext';
 
 const API_URL = '/api';
@@ -18,8 +20,6 @@ function TransactionsDashboard({ token }) {
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [page, setPage] = useState(1);
-    const [summary, setSummary] = useState({ total_income: 0, total_expense: 0, net: 0 });
-
     const [categories, setCategories] = useState([]);
     const [transactionTypes, setTransactionTypes] = useState([]);
     const [months, setMonths] = useState([]);
@@ -29,7 +29,7 @@ function TransactionsDashboard({ token }) {
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [typeFilter, setTypeFilter] = useState('All');
     const [memberLinkedFilter, setMemberLinkedFilter] = useState('');
-    const [monthFilter, setMonthFilter] = useState('');
+    const [selectedMonths, setSelectedMonths] = useState(new Set()); // Set<YYYY-MM>
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
@@ -44,6 +44,7 @@ function TransactionsDashboard({ token }) {
     const [deleteMonthDropdownOpen, setDeleteMonthDropdownOpen]       = useState(false);
     const deleteMonthDropdownRef = useRef(null);
 
+    const [utilitiesOpen, setUtilitiesOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [bulkCategoryId, setBulkCategoryId] = useState('');
     const [bulkMemberSearch, setBulkMemberSearch] = useState('');
@@ -52,16 +53,26 @@ function TransactionsDashboard({ token }) {
     const { setNotification } = useNotification();
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
+    const periodParams = (() => {
+        if (dateFrom || dateTo) return { month: '', months: '', date_from: dateFrom, date_to: dateTo };
+        if (selectedMonths.size === 0) return { month: '', months: '', date_from: '', date_to: '' };
+        if (selectedMonths.size === 1) return { month: [...selectedMonths][0], months: '', date_from: '', date_to: '' };
+        // Multiple months: send exact list so non-contiguous selections (e.g. Jan + Mar) don't include Feb
+        return { month: '', months: [...selectedMonths].sort().join(','), date_from: '', date_to: '' };
+    })();
+
     const fetchTransactions = async (currentPage = page) => {
         try {
+            const { month, months, date_from, date_to } = periodParams;
             const params = {
                 page: currentPage,
                 limit: PAGE_SIZE,
                 search,
                 category_id: categoryFilter,
-                date_from: dateFrom,
-                date_to: dateTo,
-                month: monthFilter,
+                date_from,
+                date_to,
+                month,
+                months,
                 member_linked: memberLinkedFilter,
                 transaction_type: typeFilter,
             };
@@ -69,7 +80,6 @@ function TransactionsDashboard({ token }) {
             setTransactions(res.data.transactions);
             setTotal(res.data.total);
             setTotalPages(res.data.totalPages);
-            setSummary(res.data.summary || { total_income: 0, total_expense: 0, net: 0 });
         } catch (err) {
             console.error('Error fetching transactions', err);
         }
@@ -97,7 +107,7 @@ function TransactionsDashboard({ token }) {
         setPage(1);
         setSelectedIds(new Set());
         fetchTransactions(1);
-    }, [search, categoryFilter, typeFilter, memberLinkedFilter, monthFilter, dateFrom, dateTo]);
+    }, [search, categoryFilter, typeFilter, memberLinkedFilter, selectedMonths, dateFrom, dateTo]);
 
     // Fetch new page without resetting
     useEffect(() => {
@@ -106,6 +116,12 @@ function TransactionsDashboard({ token }) {
     }, [page]);
 
     useEffect(() => { fetchMeta(); }, [token]);
+
+    // Default period to the latest month in the system once months load
+    useEffect(() => {
+        if (months.length > 0 && selectedMonths.size === 0)
+            setSelectedMonths(new Set([months[0]])); // months[0] is YYYY-MM, desc order
+    }, [months]);
 
     useEffect(() => {
         const handler = (e) => {
@@ -197,15 +213,22 @@ function TransactionsDashboard({ token }) {
 
     const handleClearFilters = () => {
         setSearch('');
+        setSelectedMonths(new Set());
         setDateFrom('');
         setDateTo('');
-        setMonthFilter('');
         setCategoryFilter('All');
         setTypeFilter('All');
         setMemberLinkedFilter('');
     };
 
+    const handleClearPeriod = () => {
+        setSelectedMonths(new Set());
+        setDateFrom('');
+        setDateTo('');
+    };
+
     const fmt = (n) => n != null ? Number(n).toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '0';
+    const { month: periodMonth, months: periodMonths, date_from: periodDateFrom, date_to: periodDateTo } = periodParams;
 
     const paginationBar = (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius)', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -229,27 +252,36 @@ function TransactionsDashboard({ token }) {
     return (
         <>
             <div className="glass" style={{ padding: '2rem', borderRadius: '20px', position: 'relative', minHeight: '70vh' }}>
-                {/* Summary bar */}
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                    <div className="summary-card glass">
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Income</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <TrendingUp size={18} /> +{fmt(summary.total_income)} CZK
-                        </div>
+                {/* Period bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                    <MonthPicker
+                        availableMonths={months}
+                        value={selectedMonths}
+                        onChange={(next) => { setSelectedMonths(next); setDateFrom(''); setDateTo(''); }}
+                        placeholder="All time"
+                    />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>or</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>From</span>
+                        <input type="date" value={dateFrom}
+                            onChange={e => { setDateFrom(e.target.value); setSelectedMonths(new Set()); }}
+                            style={{ fontSize: '0.85rem', padding: '0.3rem 0.5rem', width: 'auto' }} />
                     </div>
-                    <div className="summary-card glass">
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Expense</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <TrendingDown size={18} /> {fmt(summary.total_expense)} CZK
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>To</span>
+                        <input type="date" value={dateTo}
+                            onChange={e => { setDateTo(e.target.value); setSelectedMonths(new Set()); }}
+                            style={{ fontSize: '0.85rem', padding: '0.3rem 0.5rem', width: 'auto' }} />
                     </div>
-                    <div className="summary-card glass">
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Net</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: summary.net >= 0 ? 'var(--success)' : 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <Minus size={18} /> {fmt(summary.net)} CZK
-                        </div>
-                    </div>
+                    {(selectedMonths.size > 0 || dateFrom || dateTo) && (
+                        <button type="button" className="btn" onClick={handleClearPeriod}
+                            style={{ background: '#e2e8f0', whiteSpace: 'nowrap' }}>
+                            <X size={14} /> Clear period
+                        </button>
+                    )}
                 </div>
+
+                <FinancialSummary token={token} filters={{ month: periodMonth, months: periodMonths, dateFrom: periodDateFrom, dateTo: periodDateTo }} />
 
                 {/* Filter bar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -264,20 +296,8 @@ function TransactionsDashboard({ token }) {
                             </div>
                         </div>
                         <div className="action-buttons">
-                            <button className="btn" style={{ background: '#f1f5f9' }} onClick={handleAutoCategories} title="Re-run categorization rules on uncategorized transactions">
-                                <Wand2 size={16} /> Auto-categorize
-                            </button>
-                            <button className="btn" style={{ background: '#f1f5f9' }} onClick={handleAutoLinkMembers} title="Auto-link transactions to members by variable symbol">
-                                <Link2 size={16} /> Auto-link Members
-                            </button>
-                            <button className="btn" style={{ background: '#fee2e2', color: 'var(--danger)' }}
-                                onClick={() => setShowClearCategoriesConfirm(true)} title="Remove category from all transactions">
-                                <X size={16} /> Clear Categories
-                            </button>
-                            <button className="btn" style={{ background: '#fee2e2', color: 'var(--danger)' }}
-                                onClick={() => { setDeleteSelectedMonths(new Set()); setShowDeleteByMonthModal(true); }}
-                                title="Delete all transactions for selected months">
-                                <Trash2 size={16} /> Delete Transactions
+                            <button className="btn" style={{ background: '#f1f5f9' }} onClick={() => setUtilitiesOpen(v => !v)}>
+                                <Wrench size={16} /> Utilities {utilitiesOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                             </button>
                             <button className="btn btn-primary" onClick={() => setIsImportOpen(true)}>
                                 <FileUp size={16} /> Import
@@ -285,26 +305,28 @@ function TransactionsDashboard({ token }) {
                         </div>
                     </div>
 
-                    {/* Row 2: From / To / Month */}
-                    <div className="filter-row">
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>From</label>
-                            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ width: 'auto' }} />
+                    {/* Utilities panel */}
+                    {utilitiesOpen && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                            <button className="btn" style={{ background: '#f1f5f9' }} onClick={handleAutoCategories} title="Re-run categorization rules on uncategorized transactions">
+                                <Wand2 size={15} /> Auto-categorize
+                            </button>
+                            <button className="btn" style={{ background: '#f1f5f9' }} onClick={handleAutoLinkMembers} title="Auto-link transactions to members by variable symbol">
+                                <Link2 size={15} /> Auto-link Members
+                            </button>
+                            <button className="btn" style={{ background: '#fee2e2', color: 'var(--danger)' }}
+                                onClick={() => setShowClearCategoriesConfirm(true)} title="Remove category from all transactions">
+                                <X size={15} /> Clear Categories
+                            </button>
+                            <button className="btn" style={{ background: '#fee2e2', color: 'var(--danger)' }}
+                                onClick={() => { setDeleteSelectedMonths(new Set()); setShowDeleteByMonthModal(true); }}
+                                title="Delete all transactions for selected months">
+                                <Trash2 size={15} /> Delete Transactions
+                            </button>
                         </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>To</label>
-                            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ width: 'auto' }} />
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>Month</label>
-                            <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{ width: 'auto' }}>
-                                <option value="">All Months</option>
-                                {months.map(m => <option key={m} value={m}>{formatMonth(m)}</option>)}
-                            </select>
-                        </div>
-                    </div>
+                    )}
 
-                    {/* Row 3: Category / Type / Member Link + Clear Filters */}
+                    {/* Row 2: Category / Type / Member Link + Clear Filters */}
                     <div className="filter-row">
                         <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '120px' }}>
                             <label>Category</label>
@@ -332,7 +354,7 @@ function TransactionsDashboard({ token }) {
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <label style={{ visibility: 'hidden', fontSize: '0.75rem' }}>x</label>
                             <button className="btn" onClick={handleClearFilters} style={{ background: '#e2e8f0', whiteSpace: 'nowrap' }}>
-                                Clear Filters
+                                <X size={14} /> Clear Filters
                             </button>
                         </div>
                     </div>

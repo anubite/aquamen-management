@@ -404,6 +404,11 @@ app.get('/api/settings', authenticate, async (req, res) => {
 
 app.put('/api/settings', authenticate, async (req, res) => {
     const settings = req.body;
+    if ('opening_balance' in settings) {
+        const v = parseFloat(settings.opening_balance);
+        if (isNaN(v)) return res.status(400).json({ error: 'opening_balance must be a valid number' });
+        settings.opening_balance = String(v); // normalise to clean numeric string
+    }
     try {
         await db.transaction(async trx => {
             for (const [key, value] of Object.entries(settings)) {
@@ -756,6 +761,92 @@ app.get('/api/transactions/types', authenticate, async (req, res) => {
     }
 });
 
+app.get('/api/transactions/summary', authenticate, async (req, res) => {
+    try {
+        const { month, date_from, date_to } = req.query;
+        const monthList = req.query.months
+            ? req.query.months.split(',').map(m => m.trim()).filter(Boolean)
+            : [];
+
+        const settingsRows = await db('settings').select('*');
+        const settingsMap = settingsRows.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+        const initialBalance = parseFloat(settingsMap.opening_balance) || 0;
+
+        // Priority: months list > single month > date range
+        function applyPeriodFilter(q) {
+            if (monthList.length > 0) {
+                return q.whereRaw(
+                    `SUBSTR(transaction_date, 1, 7) IN (${monthList.map(() => '?').join(',')})`,
+                    monthList
+                );
+            }
+            if (month) return q.whereRaw("SUBSTR(transaction_date, 1, 7) = ?", [month]);
+            if (date_from) q = q.where('transaction_date', '>=', date_from);
+            if (date_to)   q = q.where('transaction_date', '<=', date_to);
+            return q;
+        }
+
+        // Opening balance = initialBalance + SUM of all transactions before the period start.
+        // No filter → opening balance is just the initial value (all-time view).
+        let openingBalance = initialBalance;
+        if (monthList.length > 0) {
+            const earliest = [...monthList].sort()[0];
+            const [pre] = await db('transactions')
+                .where('transaction_date', '<', `${earliest}-01`)
+                .select(db.raw('SUM(amount) as total'));
+            openingBalance = initialBalance + (pre.total || 0);
+        } else if (month) {
+            const [pre] = await db('transactions')
+                .where('transaction_date', '<', `${month}-01`)
+                .select(db.raw('SUM(amount) as total'));
+            openingBalance = initialBalance + (pre.total || 0);
+        } else if (date_from) {
+            const [pre] = await db('transactions')
+                .where('transaction_date', '<', date_from)
+                .select(db.raw('SUM(amount) as total'));
+            openingBalance = initialBalance + (pre.total || 0);
+        }
+
+        const [totals] = await applyPeriodFilter(db('transactions')).select(
+            db.raw('SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income'),
+            db.raw('SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as expense')
+        );
+        const income  = totals.income  || 0;
+        const expense = totals.expense || 0;
+        const net     = income + expense;
+
+        const categoryRows = await applyPeriodFilter(
+            db('transactions as t')
+                .leftJoin('transaction_categories as tc', 't.category_id', 'tc.id')
+                .select('tc.id', 'tc.name', 'tc.color', db.raw('SUM(t.amount) as total'))
+                .groupBy('t.category_id')
+                .havingRaw('SUM(t.amount) <> 0')
+        );
+
+        const categories = categoryRows.map(r => ({
+            id:    r.id   ?? null,
+            name:  r.name ?? 'Uncategorized',
+            color: r.color ?? '#64748b',
+            total: r.total,
+        })).sort((a, b) => {
+            if (a.total > 0 && b.total > 0) return b.total - a.total;
+            if (a.total < 0 && b.total < 0) return a.total - b.total;
+            return a.total > 0 ? -1 : 1; // income before expense
+        });
+
+        res.json({
+            opening_balance:  openingBalance,
+            income,
+            expense,
+            net,
+            closing_balance:  openingBalance + net,
+            categories,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/transactions', authenticate, async (req, res) => {
     try {
         const page     = Math.max(1, parseInt(req.query.page) || 1);
@@ -768,6 +859,9 @@ app.get('/api/transactions', authenticate, async (req, res) => {
         const member_linked    = req.query.member_linked || '';
         const transaction_type = req.query.transaction_type || '';
         const month            = req.query.month || '';
+        const monthList        = req.query.months
+            ? req.query.months.split(',').map(m => m.trim()).filter(Boolean)
+            : [];
 
         let query = db('transactions as t')
             .leftJoin('transaction_categories as c', 't.category_id', 'c.id')
@@ -786,7 +880,14 @@ app.get('/api/transactions', authenticate, async (req, res) => {
         }
         if (date_from) query = query.where('t.transaction_date', '>=', date_from);
         if (date_to)   query = query.where('t.transaction_date', '<=', date_to);
-        if (month)     query = query.whereRaw("SUBSTR(t.transaction_date, 1, 7) = ?", [month]);
+        if (monthList.length > 0) {
+            query = query.whereRaw(
+                `SUBSTR(t.transaction_date, 1, 7) IN (${monthList.map(() => '?').join(',')})`,
+                monthList
+            );
+        } else if (month) {
+            query = query.whereRaw("SUBSTR(t.transaction_date, 1, 7) = ?", [month]);
+        }
         if (member_linked === 'yes') query = query.whereNotNull('t.member_id');
         if (member_linked === 'no')  query = query.whereNull('t.member_id');
         if (transaction_type && transaction_type !== 'All') query = query.where('t.transaction_type', transaction_type);

@@ -3,6 +3,7 @@ node_modules
 dist
 *.sqlite
 .DS_Store
+.claude/*
 launch.sh
 dev_examples
 examples

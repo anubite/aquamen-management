@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { RefreshCw, Search, Edit2, Mail, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 import FeesDueEmailPanel from './FeesDueEmailPanel';
+import MonthPicker from './MonthPicker';
 
 const API_URL = '/api';
 
@@ -207,55 +208,36 @@ function MobileCard({ member, months, onOverride, onEmailReminder }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export default function OverviewDashboard({ token }) {
-    const [data, setData] = useState({ months: [], members: [] });
-    const [search, setSearch] = useState('');
-    const [showDetails, setShowDetails] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [data, setData]               = useState({ months: [], members: [] });
+    const [search, setSearch]           = useState('');
+    const [loading, setLoading]         = useState(false);
     const [recalculating, setRecalculating] = useState(false);
     const [overrideMember, setOverrideMember] = useState(null);
     const [emailMember, setEmailMember] = useState(null);
-    const [statusFilter, setStatusFilter] = useState('active');
+    const [statusFilter, setStatusFilter]   = useState('active');
     const [availableMonths, setAvailableMonths] = useState([]);
-    const [selectedMonths, setSelectedMonths] = useState([]);
-    const [monthPickerOpen, setMonthPickerOpen] = useState(false);
-    const monthPickerRef = useRef(null);
+    const [selectedMonths, setSelectedMonths]   = useState(new Set()); // Set<YYYY-MM>
     const { setNotification } = useNotification();
 
-    // Fetch all available months once on mount
+    // Fetch available months once on mount; default to last 6 months
     useEffect(() => {
         axios.get(`${API_URL}/transactions/months`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => {
                 setAvailableMonths(res.data);
-                setSelectedMonths(res.data.slice(0, 6));
+                if (res.data.length > 0)
+                    setSelectedMonths(new Set(res.data.slice(0, 6))); // last 6 YYYY-MM
             })
-            .catch(() => {});
+            .catch((err) => { console.error('Failed to load available months:', err.response?.data?.error || err.message); });
     }, [token]);
-
-    // Close month picker when clicking outside
-    useEffect(() => {
-        const handler = (e) => {
-            if (monthPickerRef.current && !monthPickerRef.current.contains(e.target))
-                setMonthPickerOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
-
-    const toggleMonth = (m) => {
-        setSelectedMonths(prev =>
-            prev.includes(m) ? prev.filter(x => x !== m)
-                : prev.length < 12 ? [...prev, m] : prev
-        );
-    };
 
     const fetchPivot = useCallback(async () => {
         setLoading(true);
         try {
+            const monthsFull = [...selectedMonths].sort();
             const res = await axios.get(
                 `${API_URL}/overview/pivot?status=${statusFilter}` +
-                (selectedMonths.length ? `&months=${selectedMonths.join(',')}` : ''),
+                (monthsFull.length ? `&months=${monthsFull.join(',')}` : ''),
                 { headers: { Authorization: `Bearer ${token}` } });
-            // Reverse so oldest month is on the left, newest on the right
             setData({ ...res.data, months: [...res.data.months].reverse() });
         } catch (err) {
             setNotification({ message: 'Error loading overview: ' + (err.response?.data?.error || err.message), type: 'error' });
@@ -338,42 +320,12 @@ export default function OverviewDashboard({ token }) {
                     ))}
                 </div>
 
-                {/* Month picker */}
-                <div ref={monthPickerRef} style={{ position: 'relative' }}>
-                    <button type="button" className="btn"
-                        style={{ background: '#f1f5f9', whiteSpace: 'nowrap' }}
-                        onClick={() => setMonthPickerOpen(v => !v)}>
-                        {selectedMonths.length} month{selectedMonths.length !== 1 ? 's' : ''} <ChevronDown size={14} style={{ marginLeft: 2 }} />
-                    </button>
-                    {monthPickerOpen && (
-                        <div className="nav-dropdown-menu glass"
-                            style={{ right: 0, left: 'auto', minWidth: 150, maxHeight: 280, overflowY: 'auto', padding: '0.5rem' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0 0.25rem 0.4rem', borderBottom: '1px solid var(--border)', marginBottom: '0.4rem' }}>
-                                Select up to 12 months
-                            </div>
-                            {availableMonths.map(m => {
-                                const checked = selectedMonths.includes(m);
-                                const disabled = !checked && selectedMonths.length >= 12;
-                                return (
-                                    <label key={m} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.25rem', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: '0.875rem' }}>
-                                        <input type="checkbox" checked={checked} disabled={disabled}
-                                            onChange={() => toggleMonth(m)} style={{ width: 'auto', margin: 0 }} />
-                                        {fmtMonth(m)}
-                                    </label>
-                                );
-                            })}
-                            {availableMonths.length === 0 && (
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.5rem' }}>No transactions found</div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '0.9rem', userSelect: 'none' }}>
-                    <input type="checkbox" style={{ width: 'auto', margin: 0 }}
-                        checked={showDetails} onChange={e => setShowDetails(e.target.checked)} />
-                    Paid / Due
-                </label>
+                <MonthPicker
+                    availableMonths={availableMonths}
+                    value={selectedMonths}
+                    onChange={setSelectedMonths}
+                    placeholder="All time"
+                />
 
                 <button className="btn btn-primary" onClick={recalculate} disabled={recalculating} style={{ whiteSpace: 'nowrap', marginLeft: 'auto' }}>
                     <RefreshCw size={15} className={recalculating ? 'animate-spin' : ''} />
@@ -435,20 +387,9 @@ export default function OverviewDashboard({ token }) {
                                             return (
                                                 <td key={month} className="overview-col-month overview-cell"
                                                     style={{ background: bg, color: text }}>
-                                                    {showDetails ? (
-                                                        <div style={{ lineHeight: 1.3 }}>
-                                                            <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>
-                                                                {Number(cell.amount_paid).toLocaleString('cs-CZ')}
-                                                            </div>
-                                                            <div style={{ fontSize: '0.7rem', opacity: 0.75 }}>
-                                                                / {Number(cell.amount_due).toLocaleString('cs-CZ')}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: cell.amount_paid >= cell.amount_due ? 600 : 400 }}>
-                                                            {Number(cell.amount_paid).toLocaleString('cs-CZ')}
-                                                        </span>
-                                                    )}
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: cell.amount_paid >= cell.amount_due ? 600 : 400 }}>
+                                                        {Number(cell.amount_paid).toLocaleString('cs-CZ')}
+                                                    </span>
                                                 </td>
                                             );
                                         })}
