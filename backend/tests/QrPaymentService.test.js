@@ -103,9 +103,9 @@ describe('buildQrImageTag', () => {
         expect(tag).toMatch(/^<img /);
     });
 
-    test('embeds base64 as data URI', () => {
+    test('embeds cid reference for inline attachment', () => {
         const tag = buildQrImageTag('abc123');
-        expect(tag).toContain('data:image/png;base64,abc123');
+        expect(tag).toContain('cid:abc123');
     });
 
     test('includes alt text', () => {

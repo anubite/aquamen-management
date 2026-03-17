@@ -2,7 +2,7 @@ services:
   - type: web
     name: aquamen-management
     env: node
-    buildCommand: npm run build
+    buildCommand: npm run build && npm run test:unit
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
