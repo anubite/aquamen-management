@@ -100,6 +100,35 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 });
 
 // Members routes
+app.get('/api/members/summary', authenticate, async (_req, res) => {
+    try {
+        const groups = await db('groups').select('id', 'trainer').orderBy('id');
+        const rows   = await db('members')
+            .select('group_id', 'status', db.raw('COUNT(*) as count'))
+            .groupBy('group_id', 'status');
+
+        // SQLite returns COUNT(*) as a string — coerce to number throughout
+        const totalActive   = rows.filter(r => r.status === 'Active').reduce((s, r) => s + Number(r.count), 0);
+        const totalCanceled = rows.filter(r => r.status === 'Canceled').reduce((s, r) => s + Number(r.count), 0);
+
+        const byGroup = groups.map(g => {
+            const active   = Number(rows.find(r => r.group_id === g.id && r.status === 'Active')?.count  ?? 0);
+            const canceled = Number(rows.find(r => r.group_id === g.id && r.status === 'Canceled')?.count ?? 0);
+            return { group_id: g.id, trainer: g.trainer, active, canceled };
+        });
+
+        const noGroupActive   = Number(rows.find(r => r.group_id === null && r.status === 'Active')?.count  ?? 0);
+        const noGroupCanceled = Number(rows.find(r => r.group_id === null && r.status === 'Canceled')?.count ?? 0);
+        if (noGroupActive + noGroupCanceled > 0) {
+            byGroup.push({ group_id: null, trainer: null, active: noGroupActive, canceled: noGroupCanceled });
+        }
+
+        res.json({ total_active: totalActive, total_canceled: totalCanceled, by_group: byGroup });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/members', authenticate, async (req, res) => {
     try {
         const page     = Math.max(1, parseInt(req.query.page)  || 1);

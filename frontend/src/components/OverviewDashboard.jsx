@@ -287,6 +287,9 @@ export default function OverviewDashboard({ token }) {
         }
     };
 
+    const overdueMembers  = data.members.filter(m => m.fees_due?.outstanding > 0);
+    const totalOutstanding = overdueMembers.reduce((sum, m) => sum + m.fees_due.outstanding, 0);
+
     const filtered = data.members.filter(m => {
         const q = search.toLowerCase();
         return `${m.name} ${m.surname}`.toLowerCase().includes(q) ||
@@ -332,6 +335,17 @@ export default function OverviewDashboard({ token }) {
                     {recalculating ? 'Recalculating…' : 'Recalculate'}
                 </button>
             </div>
+
+            {/* Overdue summary */}
+            {!loading && overdueMembers.length > 0 && (
+                <div className="glass" style={{ margin: '1rem 0', padding: '0.9rem 1.25rem', borderRadius: 'var(--radius)', fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                        {overdueMembers.length} member{overdueMembers.length !== 1 ? 's are' : ' is'} overdue with payments of total value{' '}
+                    </span>
+                    <strong style={{ color: 'var(--danger)' }}>{fmtCurrency(totalOutstanding)}</strong>
+                    <span style={{ color: 'var(--text-muted)' }}>.</span>
+                </div>
+            )}
 
             {loading && (
                 <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>Loading…</div>

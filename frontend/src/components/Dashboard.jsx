@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Search, FileUp, MoreHorizontal, Mail as MailIcon, 
 import MemberSidePanel from './MemberSidePanel';
 import ImportDashboard from './ImportDashboard';
 import EmailDraftPanel from './EmailDraftPanel';
+import MembersSummary from './MembersSummary';
 import { useNotification } from '../context/NotificationContext';
 
 const API_URL = '/api';
@@ -155,6 +156,7 @@ function Dashboard({ token }) {
 
     return (
         <>
+            <MembersSummary token={token} />
             <div className="glass" style={{ padding: '2rem', borderRadius: '20px', position: 'relative', minHeight: '70vh' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
